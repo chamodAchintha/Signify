@@ -65,7 +65,7 @@ sentencepiece==0.2.0
 tensorflow-estimator==2.8
 #termcolor==1.1.0
 #torch==1.12.1
-torchtext==0.13.1
+torchtext==0.6
 #torchvision==0.13.1
 #tqdm==4.40.2
 #typing==3.7.4.1
