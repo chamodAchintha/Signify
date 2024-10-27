@@ -246,7 +246,7 @@ class TransformerEncoder(Encoder):
    
     # pylint: disable=arguments-differ
     def forward(
-        self, embed_src: Tensor, src_length: Tensor, mask: Tensor
+        self, embed_src: Tensor, mask: Tensor, src_length: Tensor = None
     ) -> (Tensor, Tensor):
         if self.training:
             return self.forward_(embed_src,src_length,mask)
