@@ -2,13 +2,13 @@ name: example_experiment
 data:
     data_path: ./data/
     version: phoenix_2014_trans
-    sgn: sign 
+    sgn: keypoints
     txt: text
     gls: gloss
-    train: phoenix14t.pami0.train
-    dev:   phoenix14t.pami0.dev
-    test:  phoenix14t.pami0.test
-    feature_size: 1024
+    train: rwth_train_keypoints.train
+    dev:   rwth_dev_keypoints.dev
+    #test:  phoenix14t.pami0.test
+    feature_size: 266
     level: word
     txt_lowercase: true
     max_sent_length: 400
