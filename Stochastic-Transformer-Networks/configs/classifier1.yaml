@@ -19,41 +19,22 @@ data:
   batch_size: 32
 training:
   # load_model: "./SavedModels/example/13400.ckpt"
-  reset_best_ckpt: true
-  reset_scheduler: true
-  reset_optimizer: true
   random_seed: 44
   model_dir: "./SavedModels/example22"
-
-  eval_metric: bleu
   optimizer: adam
   learning_rate: 0.001
   batch_size: 32
-  eval_batch_size: 32
-  num_valid_log: 5
   epochs: 500
-  early_stopping_metric: eval_metric
-  batch_type: sentence
-  translation_normalization: batch
-  eval_recognition_beam_size: 1
-  eval_translation_beam_size: 1
-  eval_translation_beam_alpha: 0
-  overwrite: true
   shuffle: true
   use_cuda: true
-  translation_max_output_length: 30
-  keep_last_ckpts: 1
-  batch_multiplier: 1
-  logging_freq: 20
-  validation_freq: 80
   betas:
     - 0.9
     - 0.998
-  scheduling: plateau
   learning_rate_min: 0.00001
   patience: 6
   decrease_factor: 0.8
-  label_smoothing: 0.0
+  # es_patience: 10
+  # es_min_delta: 0
 model:
   encoder:
     use_checkpoint: true
