@@ -1,26 +1,17 @@
 name: example_experiment
 data:
-  data_path: ./data/
+  data_path: ./data/sample-dataset.pkl
   version: phoenix_2014_trans
   sgn: sign
   txt: text
   gls: gloss
-  train: phoenix14t.pami0.train
-  dev: phoenix14t.pami0.dev
-  test: phoenix14t.pami0.test
-  feature_size: 1024
-  level: word
-  txt_lowercase: true
-  max_sent_length: 400
-  random_train_subset: -1
-  random_dev_subset: -1
-  gls_vocab: ./data/gls.vocab
-  txt_vocab: ./data/txt.vocab
+  feature_size: 266
   batch_size: 32
+  seq_length: 40
 training:
   # load_model: "./SavedModels/example/13400.ckpt"
   random_seed: 44
-  model_dir: "./SavedModels/example22"
+  model_dir: "./SavedModels/classification-01"
   optimizer: adam
   learning_rate: 0.001
   batch_size: 32
@@ -36,9 +27,10 @@ training:
   # es_patience: 10
   # es_min_delta: 0
 model:
+  inference_sample_size: 4
   encoder:
-    use_checkpoint: true
-    checkpoint: ./output/best.ckpt
+    use_checkpoint: false
+    checkpoint: ./output/best-kaggle.ckpt
     skip_encoder: false
     type: transformer
     bayesian_attention: true
@@ -62,9 +54,9 @@ model:
     dropout: 0.2
   classification_head:
     type: conv # mlp, attention, conv, rnn
-    input_size: 3,
-    num_classes: 900,
-    kernel_size: 5, # if conv
-    num_filters: 64, # if conv
-    hidden_size: 128, # if mlp/rnn
-    dropout_rate: 0.3, # if mlp
+    input_size: 512
+    num_classes: 301
+    kernel_size: 3 # if conv
+    num_filters: 64 # if conv
+    hidden_size: 128 # if mlp/rnn
+    dropout_rate: 0.3 # if mlp

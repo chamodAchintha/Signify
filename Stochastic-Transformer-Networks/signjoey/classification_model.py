@@ -6,7 +6,7 @@ from signjoey.encoders import TransformerEncoder
 from signjoey.classification_head import MLPHead, ConvHead, RNNHead, AttentionHead
 
 class ClassificationModel(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, logger):
         """
         Initializes the classification model with an encoder and a classification head.
         Parameters:
@@ -15,6 +15,9 @@ class ClassificationModel(nn.Module):
         - config: A dictionary containing configuration parameters for the classification head
         """
         super(ClassificationModel, self).__init__()
+
+        self.logger = logger
+        self.logger.info('creating the classification model...')
 
         # embeddings
         self.sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
@@ -47,6 +50,7 @@ class ClassificationModel(nn.Module):
             embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('sgn_embed.')}
             self.encoder.load_state_dict(encoder_state_dict)
             self.sgn_embed.load_state_dict(embed_state_dict)
+            self.logger.info(f'loaded the embed and encoder state from the checkpoint - {checkpoint_path}')
 
         # classification head
         head_type = cfg['model']['classification_head']['type']
@@ -61,7 +65,7 @@ class ClassificationModel(nn.Module):
         else:
             raise ValueError(f"Unsupported classification head type: {head_type}")
 
-    def forward(self, x):
+    def forward(self, x, mask):
         """
         Forward pass through the model.
         Parameters:
@@ -69,8 +73,8 @@ class ClassificationModel(nn.Module):
         Returns:
         - Output tensor after passing through encoder and classification head
         """
-        x = self.sgn_embed(x)
-        x = self.encoder(x)
+        x = self.sgn_embed(x, mask)
+        x = self.encoder(x, mask)[0]
         x = self.head(x)
         return x
 

@@ -3,13 +3,13 @@ import torch
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from signjoey.helpers import load_config, set_seed
+from signjoey.helpers import load_config, make_logger, set_seed
 from signjoey.classification_model import ClassificationModel
 from signjoey.builders import build_optimizer
 from signjoey.early_stopping import EarlyStopping
+from signjoey.classification_data import load_training_data
 
-
-def train_model(cfg_file: str, train_loader, val_loader):
+def train_model(cfg_file: str):
 
     cfg = load_config(cfg_file)
     train_config = cfg['training']
@@ -17,10 +17,15 @@ def train_model(cfg_file: str, train_loader, val_loader):
     # output path
     os.makedirs(train_config["model_dir"], exist_ok=True)
 
+    logger = make_logger(model_dir=train_config["model_dir"])
+
     # set the random seed
     set_seed(seed=cfg["training"].get("random_seed", 42))
 
-    model = ClassificationModel(cfg)
+    train_loader, val_loader = load_training_data(cfg)    
+
+    model = ClassificationModel(cfg, logger)
+    logger.info(f'classification model created:\n{model}')
 
     use_cuda = cfg["training"].get("use_cuda", False)
     device = torch.device("cuda" if (torch.cuda.is_available() and use_cuda) else "cpu")
@@ -61,11 +66,12 @@ def train_model(cfg_file: str, train_loader, val_loader):
         total_loss = 0
         current_lr = optimizer.param_groups[0]['lr']
 
-        for batch_idx, (data, target) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch + 1}"):
-            data, target = data.to(device), target.to(device)
+        for batch_idx, (data, target, mask) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch + 1}"):
+            mask = mask.unsqueeze(1).expand(-1, 1, -1)
+            data, target, mask = data.to(device), target.to(device), mask.to(device)
 
             optimizer.zero_grad()
-            output = model(data)
+            output = model(data, mask)
             loss = criterion(output, target)
             loss.backward() 
 
@@ -76,7 +82,7 @@ def train_model(cfg_file: str, train_loader, val_loader):
         avg_loss = total_loss / len(train_loader)
         avg_val_loss, val_accuracy = validate_model(model, val_loader, criterion, device)
 
-        print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} lr: {current_lr}')
+        logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} lr: {current_lr}')
 
         # save checkpoint
         if avg_val_loss < best_val_loss:
@@ -90,7 +96,7 @@ def train_model(cfg_file: str, train_loader, val_loader):
                 'learning_rate': optimizer.param_groups[0]['lr']
             }
             torch.save(checkpoint, os.path.join(train_config["model_dir"], 'best_model.pth'))
-            print(f"New best model saved with validation loss {best_val_loss:.4f}")
+            logger.info(f"New best model saved with validation loss {best_val_loss:.4f}")
 
 
         # Step the scheduler
@@ -102,8 +108,9 @@ def train_model(cfg_file: str, train_loader, val_loader):
         #     print(f"Early stopping after {epoch + 1} epochs. Best Validation Loss: {early_stopping.best_loss:.4f}")
         #     break
 
-        if device.type == 'cuda':
-            torch.cuda.empty_cache()
+        # if device.type == 'cuda':
+        #     torch.cuda.empty_cache()
+    logger.info('Training Completed.')
 
 def validate_model(model, val_loader, criterion, device):
     model.eval()
@@ -111,10 +118,12 @@ def validate_model(model, val_loader, criterion, device):
     correct = 0
 
     with torch.no_grad():
-        for data, target in val_loader:
-            data, target = data.to(device), target.to(device)
-            output = model(data)
-
+        for data, target, mask in val_loader:
+            mask = mask.unsqueeze(1).expand(-1, 1, -1)
+            data, target, mask = data.to(device), target.to(device), mask.to(device)
+            print('data shape:', data.shape)
+            output = model(data, mask)
+            print("Validatation output shape:", output.shape)
             val_loss = criterion(output, target)
             total_val_loss += val_loss.item()
 
