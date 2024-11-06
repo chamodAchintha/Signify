@@ -77,27 +77,27 @@ class ConvHead(ClassificationHead):
 
     def forward(self, x):
         if self.training:
-            print(x.shape)
+            # print(x.shape)
             x = x.permute(0, 2, 1)  # Reshape to (batch, input_size, seq_length)
             return self.network(x)
         else:
             inference_sample_size = max(x.shape[-1], self.inference_sample_size)
 
             out = torch.zeros((x.shape[0], self.num_classes))
-            print('classifier - out', out.shape)
+            # print('classifier - out', out.shape)
 
             for i in range(inference_sample_size):
                 xi = x[..., i % x.shape[-1]]
-                print('classifier - xi', xi.shape)
+                # print('classifier - xi', xi.shape)
                 xi = self.network(xi.permute(0, 2, 1) )
-                print('classifier - xi out', xi.shape)
+                # print('classifier - xi out', xi.shape)
                 
                 # Accumulate the outputs
                 out += xi
 
             # Average the outputs over the number of samples
             out = out*1.0/inference_sample_size
-            print('classifier head out:', out.shape)
+            # print('classifier head out:', out.shape)
             return out
 
 

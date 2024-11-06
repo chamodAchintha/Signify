@@ -118,12 +118,12 @@ def validate_model(model, val_loader, criterion, device):
     correct = 0
 
     with torch.no_grad():
-        for data, target, mask in val_loader:
+        for batch_idx, (data, target, mask) in tqdm(enumerate(val_loader), total=len(val_loader), desc=f"Validation"):
             mask = mask.unsqueeze(1).expand(-1, 1, -1)
             data, target, mask = data.to(device), target.to(device), mask.to(device)
-            print('data shape:', data.shape)
+            # print('data shape:', data.shape)
             output = model(data, mask)
-            print("Validatation output shape:", output.shape)
+            # print("Validatation output shape:", output.shape)
             val_loss = criterion(output, target)
             total_val_loss += val_loss.item()
 
