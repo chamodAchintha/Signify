@@ -6,16 +6,19 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import Subset, DataLoader
 
 class SignLanguageDataset(Dataset):
-    def __init__(self, data_path, seq_length, transform=None):
+    def __init__(self, data_path, seq_length, label_encoder=None, train=False, transform=None):
         with open(data_path, "rb") as f:
             self.data = pickle.load(f)
 
         self.sequence_length = seq_length
         self.transform = transform
+        self.label_encoder = label_encoder
 
         # Initialize and fit the LabelEncoder on all unique classes in the dataset
-        self.label_encoder = LabelEncoder()
-        self.label_encoder.fit([entry['sinhala_word'] for entry in self.data])
+        if self.label_encoder is None:
+            raise ValueError('No label encoder provided')
+        if train:
+            self.label_encoder.fit([entry['sinhala_word'] for entry in self.data])
 
     def __len__(self):
         return len(self.data)
@@ -50,9 +53,9 @@ class SignLanguageDataset(Dataset):
 
 
 
-def load_training_data(cfg):
+def load_training_data(cfg, label_encoder):
     
-    dataset = SignLanguageDataset(cfg['data']['train_data_path'], cfg['data']['seq_length'])
+    dataset = SignLanguageDataset(cfg['data']['train_data_path'], cfg['data']['seq_length'],train=True, label_encoder=label_encoder)
     all_indices = list(range(len(dataset)))
     all_labels = [dataset[i][1] for i in all_indices]  # assuming labels are the second element in each dataset item
 
@@ -72,8 +75,8 @@ def load_training_data(cfg):
     return train_loader, val_loader
 
 
-def load_test_data(cfg):
-    test_dataset = SignLanguageDataset(cfg['data']['test_data_path'], cfg['data']['seq_length'])
+def load_test_data(cfg, label_encoder):
+    test_dataset = SignLanguageDataset(cfg['data']['test_data_path'], cfg['data']['seq_length'], train=False, label_encoder=label_encoder)
 
     # Create data loaders
     batch_size = cfg['data']['batch_size']

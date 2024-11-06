@@ -8,6 +8,8 @@ from signjoey.classification_model import ClassificationModel
 from signjoey.builders import build_optimizer
 from signjoey.early_stopping import EarlyStopping
 from signjoey.classification_data import load_training_data
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import f1_score
 
 def train_model(cfg_file: str):
 
@@ -22,7 +24,8 @@ def train_model(cfg_file: str):
     # set the random seed
     set_seed(seed=cfg["training"].get("random_seed", 42))
 
-    train_loader, val_loader = load_training_data(cfg)    
+    label_encoder = LabelEncoder()
+    train_loader, val_loader = load_training_data(cfg, label_encoder)    
 
     model = ClassificationModel(cfg, logger)
     logger.info(f'classification model created:\n{model}')
@@ -80,9 +83,9 @@ def train_model(cfg_file: str):
             total_loss += loss.item()
 
         avg_loss = total_loss / len(train_loader)
-        avg_val_loss, val_accuracy = validate_model(model, val_loader, criterion, device)
+        avg_val_loss, val_accuracy, val_f1 = validate_model(model, val_loader, criterion, device)
 
-        logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} lr: {current_lr}')
+        logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr}')
 
         # save checkpoint
         if avg_val_loss < best_val_loss:
@@ -93,7 +96,10 @@ def train_model(cfg_file: str):
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_val_loss': best_val_loss,
-                'learning_rate': optimizer.param_groups[0]['lr']
+                'Accuracy': val_accuracy,
+                'F1': val_f1,
+                'learning_rate': optimizer.param_groups[0]['lr'],
+                'label_encoder': label_encoder
             }
             torch.save(checkpoint, os.path.join(train_config["model_dir"], 'best_model.pth'))
             logger.info(f"New best model saved with validation loss {best_val_loss:.4f}")
@@ -116,6 +122,8 @@ def validate_model(model, val_loader, criterion, device):
     model.eval()
     total_val_loss = 0
     correct = 0
+    all_preds = []
+    all_targets = []
 
     with torch.no_grad():
         for batch_idx, (data, target, mask) in tqdm(enumerate(val_loader), total=len(val_loader), desc=f"Validation"):
@@ -131,6 +139,11 @@ def validate_model(model, val_loader, criterion, device):
             pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
 
+            # Collect predictions and targets for F1 score
+            all_preds.extend(pred.cpu().numpy().flatten())
+            all_targets.extend(target.cpu().numpy())
+
     avg_val_loss = total_val_loss / len(val_loader)
     accuracy = correct / len(val_loader.dataset)
-    return avg_val_loss, accuracy
+    f1 = f1_score(all_targets, all_preds, average='micro')
+    return avg_val_loss, accuracy, f1
