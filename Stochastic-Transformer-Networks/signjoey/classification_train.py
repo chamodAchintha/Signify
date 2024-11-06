@@ -32,7 +32,10 @@ def train_model(cfg_file: str):
 
     use_cuda = cfg["training"].get("use_cuda", False)
     device = torch.device("cuda" if (torch.cuda.is_available() and use_cuda) else "cpu")
+    logger.info(f"device: {device}")
+
     model.to(device)
+
 
     # optimization
     current_lr = train_config["learning_rate"]

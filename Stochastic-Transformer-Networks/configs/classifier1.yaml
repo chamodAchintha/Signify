@@ -1,7 +1,7 @@
 name: example_experiment
 data:
-  train_data_path: ./data/sinhala-word-5fps-10sample-766classes-train.pkl
-  test_data_path: ./data/sinhala-word-5fps-10sample-766classes-test.pkl
+  train_data_path: ./data/sample-dataset.pkl
+  test_data_path: ./data/sample-dataset.pkl
   feature_size: 266 # 133x2
   batch_size: 32
   seq_length: 40
@@ -52,7 +52,7 @@ model:
   classification_head:
     type: conv # mlp, attention, conv, rnn
     input_size: 512
-    num_classes: 766
+    num_classes: 301
     kernel_size: 3 # if conv
     num_filters: 64 # if conv
     hidden_size: 128 # if mlp/rnn

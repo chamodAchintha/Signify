@@ -82,8 +82,9 @@ class ConvHead(ClassificationHead):
             return self.network(x)
         else:
             inference_sample_size = max(x.shape[-1], self.inference_sample_size)
+            # print(x.device)
 
-            out = torch.zeros((x.shape[0], self.num_classes))
+            out = torch.zeros((x.shape[0], self.num_classes),  device=x.device)
             # print('classifier - out', out.shape)
 
             for i in range(inference_sample_size):
