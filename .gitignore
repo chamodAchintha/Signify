@@ -4,4 +4,5 @@ Stochastic-Transformer-Networks/data/phoenix14t.pami0.test
 Stochastic-Transformer-Networks/data/phoenix14t.pami0.train
 Stochastic-Transformer-Networks/signjoey/__pycache__
 Stochastic-Transformer-Networks/output/*.ckpt
-Stochastic-Transformer-Networks/data/sample-dataset.pkl
+Stochastic-Transformer-Networks/data/*.pkl
+Stochastic-Transformer-Networks/SavedModels/*

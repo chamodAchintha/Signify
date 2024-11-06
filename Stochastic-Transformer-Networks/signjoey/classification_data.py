@@ -52,7 +52,7 @@ class SignLanguageDataset(Dataset):
 
 def load_training_data(cfg):
     
-    dataset = SignLanguageDataset(cfg['data']['data_path'], cfg['data']['seq_length'])
+    dataset = SignLanguageDataset(cfg['data']['train_data_path'], cfg['data']['seq_length'])
     all_indices = list(range(len(dataset)))
     all_labels = [dataset[i][1] for i in all_indices]  # assuming labels are the second element in each dataset item
 
@@ -66,6 +66,16 @@ def load_training_data(cfg):
     val_dataset = Subset(dataset, val_indices)
 
     # Create data loaders
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    batch_size = cfg['data']['batch_size']
+    train_loader = DataLoader(train_dataset, batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size, shuffle=False)
     return train_loader, val_loader
+
+
+def load_test_data(cfg):
+    test_dataset = SignLanguageDataset(cfg['data']['test_data_path'], cfg['data']['seq_length'])
+
+    # Create data loaders
+    batch_size = cfg['data']['batch_size']
+    test_loader = DataLoader(test_dataset, batch_size, shuffle=True)
+    return test_loader
