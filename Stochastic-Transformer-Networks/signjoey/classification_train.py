@@ -9,7 +9,7 @@ from signjoey.builders import build_optimizer
 from signjoey.early_stopping import EarlyStopping
 from signjoey.classification_data import load_training_data
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, accuracy_score
 import pandas as pd
 
 def train_model(cfg_file: str):
@@ -93,9 +93,9 @@ def train_model(cfg_file: str):
         avg_loss = total_loss / len(train_loader)
         avg_val_loss, val_accuracy, val_f1, all_preds, all_targets = validate_model(model, val_loader, criterion, device)
 
-        logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr}')
+        logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr:.6f}')
         with open(validation_file, "a", encoding="utf-8") as opened_file:
-            opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr}\n')
+            opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr:.6f}\n')
 
         # save checkpoint
         if avg_val_loss < best_val_loss:
@@ -115,8 +115,10 @@ def train_model(cfg_file: str):
             logger.info(f"New best model saved with validation loss {best_val_loss:.4f}")
 
             df = pd.DataFrame({
-            'True_Label': all_targets,
-            'Pred_Label': all_preds
+                'True_Class': all_targets,
+                'Pred_Class': all_preds,
+                'True_Label': label_encoder.inverse_transform(all_targets),
+                'Pred_Label': label_encoder.inverse_transform(all_preds)
             })
             # Save to CSV
             df.to_csv(f"{train_config['model_dir']}/{cfg['name']}_validation_results.csv", index=False)
@@ -138,7 +140,7 @@ def train_model(cfg_file: str):
 def validate_model(model, val_loader, criterion, device):
     model.eval()
     total_val_loss = 0
-    correct = 0
+    # correct = 0
     all_preds = []
     all_targets = []
 
@@ -154,7 +156,7 @@ def validate_model(model, val_loader, criterion, device):
 
             # Calculate accuracy
             pred = output.argmax(dim=1, keepdim=True)
-            correct += pred.eq(target.view_as(pred)).sum().item()
+            # correct += pred.eq(target.view_as(pred)).sum().item()
 
             # Collect predictions and targets for F1 score
             all_preds.extend(pred.cpu().numpy().flatten())
@@ -163,6 +165,6 @@ def validate_model(model, val_loader, criterion, device):
     # print(all_preds)
     # print(all_targets)
     avg_val_loss = total_val_loss / len(val_loader)
-    accuracy = correct / len(val_loader.dataset)
+    accuracy = accuracy_score(all_targets, all_preds)
     f1 = f1_score(all_targets, all_preds, average='weighted')
     return avg_val_loss, accuracy, f1, all_preds, all_targets
