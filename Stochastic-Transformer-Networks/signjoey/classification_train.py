@@ -20,6 +20,9 @@ def train_model(cfg_file: str):
     os.makedirs(train_config["model_dir"], exist_ok=True)
 
     logger = make_logger(model_dir=train_config["model_dir"], log_file=f"{cfg['name']}_train.log")
+    validation_file = f"{cfg['name']}_validation.txt"
+    with open(validation_file, "w", encoding="utf-8") as opened_file:
+        pass
 
     # set the random seed
     set_seed(seed=cfg["training"].get("random_seed", 42))
@@ -90,6 +93,8 @@ def train_model(cfg_file: str):
         avg_val_loss, val_accuracy, val_f1 = validate_model(model, val_loader, criterion, device)
 
         logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr}')
+        with open(validation_file, "a", encoding="utf-8") as opened_file:
+            opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr}')
 
         # save checkpoint
         if avg_val_loss < best_val_loss:
@@ -151,5 +156,5 @@ def validate_model(model, val_loader, criterion, device):
     # print(all_targets)
     avg_val_loss = total_val_loss / len(val_loader)
     accuracy = correct / len(val_loader.dataset)
-    f1 = f1_score(all_targets, all_preds, average='micro')
+    f1 = f1_score(all_targets, all_preds, average='weighted')
     return avg_val_loss, accuracy, f1
