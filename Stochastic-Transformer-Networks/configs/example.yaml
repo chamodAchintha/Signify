@@ -91,7 +91,7 @@ model:
     num_layers: 2
     num_heads: 8
     embeddings:
-      embedding_dim: 512
+      embedding_dim: 110
       scale: false
       bayesian: true
       ibp: false
@@ -99,8 +99,8 @@ model:
       norm_type: batch
       activation_type: lwta
       lwta_competitors: 4
-    hidden_size: 512
-    ff_size: 2048
+    hidden_size: 110
+    ff_size: 440
     dropout: 0.2
   decoder:
     type: transformer
@@ -113,11 +113,11 @@ model:
     activation: lwta
     lwta_competitors: 4
     embeddings:
-      embedding_dim: 512
+      embedding_dim: 110
       scale: False
       bayesian: False
       dropout: 0.2
       norm_type: batch
-    hidden_size: 512
-    ff_size: 2048
+    hidden_size: 110
+    ff_size: 440
     dropout: 0.2
