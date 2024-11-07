@@ -19,7 +19,7 @@ def train_model(cfg_file: str):
     # output path
     os.makedirs(train_config["model_dir"], exist_ok=True)
 
-    logger = make_logger(model_dir=train_config["model_dir"])
+    logger = make_logger(model_dir=train_config["model_dir"], log_file=f"{cfg['name']}_train.log")
 
     # set the random seed
     set_seed(seed=cfg["training"].get("random_seed", 42))
