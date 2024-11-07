@@ -36,7 +36,7 @@ model:
     ibp: false
     activation: lwta
     lwta_competitors: 4
-    num_layers: 3
+    num_layers: 2
     num_heads: 8
     embeddings:
       embedding_dim: 512
