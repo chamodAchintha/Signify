@@ -30,17 +30,38 @@ class MLPHead(ClassificationHead):
         super(MLPHead, self).__init__(input_size, num_classes)
         self.network = nn.Sequential(
             nn.Linear(input_size, hidden_size),
+            nn.LayerNorm(hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.LayerNorm(hidden_size),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
             nn.Linear(hidden_size, num_classes)
         )
-
+    
     def forward(self, x):
-        return self.network(x)
+        if self.training:
+            return self.forward_(x)
+        else:
+            inference_sample_size = max(x.shape[-1], self.inference_sample_size)
+
+            out = torch.zeros((x.shape[0], self.num_classes),  device=x.device)
+
+            for i in range(inference_sample_size):
+                xi = x[..., i % x.shape[-1]]
+                xi = self.forward_(xi)
+                out += xi
+
+            # Average the outputs over the number of samples
+            return out*1.0/inference_sample_size
+
+    def forward_(self, x):
+        return self.network(x).mean(dim=1)
 
 
 class AttentionHead(ClassificationHead):
     def __init__(self, config):
+        self.inference_sample_size = config['model']['inference_sample_size']
         config = config['model']['classification_head']
         input_size = config['input_size']
         num_classes = config['num_classes']
@@ -48,11 +69,30 @@ class AttentionHead(ClassificationHead):
         super(AttentionHead, self).__init__(input_size, num_classes)
         self.attention = nn.Linear(input_size, 1)
         self.fc = nn.Linear(input_size, num_classes)
+        self.norm = nn.LayerNorm(input_size)
 
     def forward(self, x):
+        if self.training:
+            return self.forward_(x)
+        else:
+            inference_sample_size = max(x.shape[-1], self.inference_sample_size)
+
+            out = torch.zeros((x.shape[0], self.num_classes),  device=x.device)
+
+            for i in range(inference_sample_size):
+                xi = x[..., i % x.shape[-1]]
+                xi = self.forward_(xi)
+                out += xi
+
+            # Average the outputs over the number of samples
+            return out*1.0/inference_sample_size
+
+
+    def forward_(self, x):
         # Compute attention weights
         weights = torch.softmax(self.attention(x), dim=1)  # (batch, seq, 1)
         x = (x * weights).sum(dim=1)  # Weighted sum across the sequence
+        x = self.norm(x)
         return self.fc(x)
 
 
@@ -69,6 +109,7 @@ class ConvHead(ClassificationHead):
         super(ConvHead, self).__init__(self.input_size, self.num_classes)
         self.network = nn.Sequential(
             nn.Conv1d(self.input_size, self.num_filters, kernel_size=self.kernel_size, padding=1),
+            nn.BatchNorm1d(self.num_filters),
             nn.ReLU(),
             nn.AdaptiveAvgPool1d(1),  # Pooling over the sequence length
             nn.Flatten(),
@@ -82,28 +123,22 @@ class ConvHead(ClassificationHead):
             return self.network(x)
         else:
             inference_sample_size = max(x.shape[-1], self.inference_sample_size)
-            # print(x.device)
 
             out = torch.zeros((x.shape[0], self.num_classes),  device=x.device)
-            # print('classifier - out', out.shape)
 
             for i in range(inference_sample_size):
                 xi = x[..., i % x.shape[-1]]
-                # print('classifier - xi', xi.shape)
                 xi = self.network(xi.permute(0, 2, 1) )
-                # print('classifier - xi out', xi.shape)
-                
-                # Accumulate the outputs
                 out += xi
 
             # Average the outputs over the number of samples
             out = out*1.0/inference_sample_size
-            # print('classifier head out:', out.shape)
             return out
 
 
 class RNNHead(ClassificationHead):
     def __init__(self, config):
+        self.inference_sample_size = config['model']['inference_sample_size']
         config = config['model']['classification_head']
         input_size = config['input_size']
         hidden_size = config['hidden_size']
@@ -111,9 +146,28 @@ class RNNHead(ClassificationHead):
         
         super(RNNHead, self).__init__(input_size, num_classes)
         self.rnn = nn.LSTM(input_size, hidden_size, batch_first=True)
+        self.norm = nn.LayerNorm(hidden_size)
         self.fc = nn.Linear(hidden_size, num_classes)
-
+    
     def forward(self, x):
+        if self.training:
+            return self.forward_(x)
+        else:
+            inference_sample_size = max(x.shape[-1], self.inference_sample_size)
+
+            out = torch.zeros((x.shape[0], self.num_classes),  device=x.device)
+
+            for i in range(inference_sample_size):
+                xi = x[..., i % x.shape[-1]]
+                xi = self.forward_(xi)
+                out += xi
+
+            # Average the outputs over the number of samples
+            return out*1.0/inference_sample_size
+
+
+    def forward_(self, x):
         _, (h_n, _) = self.rnn(x)  # Get the final hidden state
-        return self.fc(h_n.squeeze(0))  # (batch_size, num_classes)
+        h_n = self.norm(h_n.squeeze(0))
+        return self.fc(h_n)  # (batch_size, num_classes)
 
