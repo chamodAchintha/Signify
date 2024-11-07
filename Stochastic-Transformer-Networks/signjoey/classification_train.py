@@ -146,6 +146,8 @@ def validate_model(model, val_loader, criterion, device):
             all_preds.extend(pred.cpu().numpy().flatten())
             all_targets.extend(target.cpu().numpy())
 
+    # print(all_preds)
+    # print(all_targets)
     avg_val_loss = total_val_loss / len(val_loader)
     accuracy = correct / len(val_loader.dataset)
     f1 = f1_score(all_targets, all_preds, average='micro')
