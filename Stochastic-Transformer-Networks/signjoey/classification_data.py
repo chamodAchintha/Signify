@@ -61,7 +61,7 @@ def load_training_data(cfg, label_encoder):
 
     # Stratified split for train and validation
     train_indices, val_indices = train_test_split(
-        all_indices, test_size=0.2, stratify=all_labels, random_state=42
+        all_indices, test_size=cfg['data']['val_split'], stratify=all_labels, random_state=42
     )
 
     # Subset the dataset using the indices
