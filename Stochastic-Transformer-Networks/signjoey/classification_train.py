@@ -26,6 +26,7 @@ def train_model(cfg_file: str):
 
     label_encoder = LabelEncoder()
     train_loader, val_loader = load_training_data(cfg, label_encoder)    
+    logger.info(f"train loader size: {len(train_loader)}\nvalidtion loader size: {len(val_loader)}")
 
     model = ClassificationModel(cfg, logger)
     logger.info(f'classification model created:\n{model}')

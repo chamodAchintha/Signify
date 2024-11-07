@@ -9,7 +9,7 @@ data:
 training:
   # load_model: "./SavedModels/example/13400.ckpt"
   random_seed: 44
-  model_dir: "./SavedModels/classification-01"
+  model_dir: "./SavedModels/classification-02"
   optimizer: adam
   learning_rate: 0.001
   batch_size: 32
