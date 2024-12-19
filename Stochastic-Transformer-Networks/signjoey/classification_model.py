@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import os
 from signjoey.helpers import load_checkpoint
@@ -74,7 +75,13 @@ class ClassificationModel(nn.Module):
         - Output tensor after passing through encoder and classification head
         """
         x = self.sgn_embed(x, mask)
-        x = self.encoder(x, mask)[0]
-        x = self.head(x)
-        return x
+        x_encoder = self.encoder(x, mask)[0]
+        x, emb = self.head(x_encoder)
+
+        return x, emb
+
+        # if self.training:
+        #     return x, x_encoder
+        # else:
+        #     return x, torch.stack(x_encoder).mean(dim=0)
 

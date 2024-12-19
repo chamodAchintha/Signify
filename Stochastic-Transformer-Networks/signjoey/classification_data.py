@@ -49,7 +49,9 @@ class SignLanguageDataset(Dataset):
         if self.transform:
             keypoints = self.transform(keypoints)
 
-        return keypoints, target_class, mask
+        target_embed = entry['embedding']
+
+        return keypoints, target_class, mask, target_embed
 
 
 

@@ -2,6 +2,7 @@ import os
 import torch
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 from tqdm import tqdm
 from signjoey.helpers import load_config, make_logger, set_seed
 from signjoey.classification_model import ClassificationModel
@@ -49,6 +50,7 @@ def train_model(cfg_file: str):
     )
 
     criterion = torch.nn.CrossEntropyLoss()
+    lam = train_config['lambda']
 
     # learning rate scheduling
     scheduler = lr_scheduler.ReduceLROnPlateau(
@@ -77,13 +79,18 @@ def train_model(cfg_file: str):
         total_loss = 0
         current_lr = optimizer.param_groups[0]['lr']
 
-        for batch_idx, (data, target, mask) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch + 1}"):
+        for batch_idx, (data, target, mask, target_embed) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch + 1}"):
             mask = mask.unsqueeze(1).expand(-1, 1, -1)
             data, target, mask = data.to(device), target.to(device), mask.to(device)
 
             optimizer.zero_grad()
-            output = model(data, mask)
-            loss = criterion(output, target)
+            output, emb = model(data, mask)
+
+            ce_loss = criterion(output, target)
+            align_loss = (1 - F.cosine_similarity(emb, target_embed, dim = -1)).mean()
+
+            # Total loss: CrossEntropy + λ * Alignment Loss
+            loss = ce_loss + lam * align_loss
             loss.backward() 
 
             optimizer.step() 
@@ -91,7 +98,7 @@ def train_model(cfg_file: str):
             total_loss += loss.item()
 
         avg_loss = total_loss / len(train_loader)
-        avg_val_loss, val_accuracy, val_f1, all_preds, all_targets = validate_model(model, val_loader, criterion, device)
+        avg_val_loss, val_accuracy, val_f1, all_preds, all_targets = validate_model(model, val_loader, criterion, lam, device)
 
         logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr:.6f}')
         with open(validation_file, "a", encoding="utf-8") as opened_file:
@@ -137,7 +144,7 @@ def train_model(cfg_file: str):
         #     torch.cuda.empty_cache()
     logger.info('Training Completed.')
 
-def validate_model(model, val_loader, criterion, device):
+def validate_model(model, val_loader, criterion, lam, device):
     model.eval()
     total_val_loss = 0
     # correct = 0
@@ -145,15 +152,17 @@ def validate_model(model, val_loader, criterion, device):
     all_targets = []
 
     with torch.no_grad():
-        for batch_idx, (data, target, mask) in tqdm(enumerate(val_loader), total=len(val_loader), desc=f"Validation"):
+        for batch_idx, (data, target, mask, target_embed) in tqdm(enumerate(val_loader), total=len(val_loader), desc=f"Validation"):
             mask = mask.unsqueeze(1).expand(-1, 1, -1)
             data, target, mask = data.to(device), target.to(device), mask.to(device)
-            # print('data shape:', data.shape)
-            output = model(data, mask)
-            # print("Validatation output shape:", output.shape)
-            val_loss = criterion(output, target)
-            total_val_loss += val_loss.item()
 
+            output, emb = model(data, mask)
+
+            val_ce_loss = criterion(output, target)
+            # print('val_ce_loss', val_ce_loss)
+            val_align_loss = (1 - F.cosine_similarity(emb, target_embed, dim = -1)).mean()
+            total_val_loss += (val_ce_loss.item() + lam * val_align_loss.item())
+            
             # Calculate accuracy
             pred = output.argmax(dim=1, keepdim=True)
             # correct += pred.eq(target.view_as(pred)).sum().item()

@@ -63,13 +63,14 @@ class AttentionHead(ClassificationHead):
     def __init__(self, config):
         self.inference_sample_size = config['model']['inference_sample_size']
         config = config['model']['classification_head']
-        input_size = config['input_size']
-        num_classes = config['num_classes']
+        self.input_size = config['input_size']
+        self.num_classes = config['num_classes']
         
-        super(AttentionHead, self).__init__(input_size, num_classes)
-        self.attention = nn.Linear(input_size, 1)
-        self.fc = nn.Linear(input_size, num_classes)
-        self.norm = nn.LayerNorm(input_size)
+        super(AttentionHead, self).__init__(self.input_size, self.num_classes)
+        self.attention = nn.Linear(self.input_size, 1)
+        self.norm = nn.LayerNorm(self.input_size)
+        self.fc_1 = nn.Linear(self.input_size, self.num_classes*2)
+        self.fc_2 = nn.Linear(self.num_classes*2, self.num_classes)
 
     def forward(self, x):
         if self.training:
@@ -78,14 +79,16 @@ class AttentionHead(ClassificationHead):
             inference_sample_size = max(x.shape[-1], self.inference_sample_size)
 
             out = torch.zeros((x.shape[0], self.num_classes),  device=x.device)
+            emb = torch.zeros((x.shape[0], self.input_size),  device=x.device)
 
             for i in range(inference_sample_size):
                 xi = x[..., i % x.shape[-1]]
                 xi = self.forward_(xi)
-                out += xi
+                out += xi[0]
+                emb += xi[1]
 
             # Average the outputs over the number of samples
-            return out*1.0/inference_sample_size
+            return out*1.0/inference_sample_size, emb*1.0/inference_sample_size
 
 
     def forward_(self, x):
@@ -93,7 +96,7 @@ class AttentionHead(ClassificationHead):
         weights = torch.softmax(self.attention(x), dim=1)  # (batch, seq, 1)
         x = (x * weights).sum(dim=1)  # Weighted sum across the sequence
         x = self.norm(x)
-        return self.fc(x)
+        return self.fc_2(self.fc_1(x)), x
 
 
 class ConvHead(ClassificationHead):
