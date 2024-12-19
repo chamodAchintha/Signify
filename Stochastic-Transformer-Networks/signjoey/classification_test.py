@@ -4,6 +4,7 @@ from tqdm import tqdm
 import pandas as pd
 import os
 import torch
+import torch.nn.functional as F
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -37,6 +38,7 @@ def test_model(cfg_file: str):
     logger.info(f"Classification model loaded.")
     
     use_cuda = cfg["training"].get("use_cuda", False)
+    lam = cfg["training"].get('lambda', 1)
     device = torch.device("cuda" if (torch.cuda.is_available() and use_cuda) else "cpu")
     logger.info(f"device: {device}")
     model.to(device)
@@ -50,13 +52,14 @@ def test_model(cfg_file: str):
     all_targets = []
 
     with torch.no_grad():
-        for batch_idx, (data, target, mask) in tqdm(enumerate(test_loader), total=len(test_loader), desc="Testing"):
+        for batch_idx, (data, target, mask, target_embed) in tqdm(enumerate(test_loader), total=len(test_loader), desc="Testing"):
             mask = mask.unsqueeze(1).expand(-1, 1, -1)
-            data, target, mask = data.to(device), target.to(device), mask.to(device)
+            data, target, mask, target_embed = data.to(device), target.to(device), mask.to(device), target_embed.to(device)
 
-            output = model(data, mask)
-            test_loss = criterion(output, target)
-            total_test_loss += test_loss.item()
+            output, emb = model(data, mask)
+            test_ce_loss = criterion(output, target)
+            test_align_loss = (1 - F.cosine_similarity(emb, target_embed, dim = -1)).mean()
+            total_test_loss += (test_ce_loss.item() + lam * test_align_loss.item())
 
             # Predictions and actual targets
             pred = output.argmax(dim=1, keepdim=True)

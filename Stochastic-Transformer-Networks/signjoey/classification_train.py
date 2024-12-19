@@ -50,7 +50,7 @@ def train_model(cfg_file: str):
     )
 
     criterion = torch.nn.CrossEntropyLoss()
-    lam = train_config['lambda']
+    lam = train_config.get('lambda', 1)
 
     # learning rate scheduling
     scheduler = lr_scheduler.ReduceLROnPlateau(
