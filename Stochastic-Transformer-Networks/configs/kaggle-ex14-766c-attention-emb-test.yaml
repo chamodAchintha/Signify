@@ -40,7 +40,7 @@ model:
     num_layers: 3
     num_heads: 8
     embeddings:
-      embedding_dim: 512
+      embedding_dim: 1024
       scale: false
       bayesian: true
       ibp: false
@@ -48,12 +48,12 @@ model:
       norm_type: batch
       activation_type: lwta
       lwta_competitors: 4
-    hidden_size: 512
+    hidden_size: 1024
     ff_size: 2048
     dropout: 0.2
   classification_head:
     type: attention # mlp, attention, conv, rnn
-    input_size: 512
+    input_size: 1024
     num_classes: 766
     kernel_size: 3 # if conv
     num_filters: 64 # if conv
