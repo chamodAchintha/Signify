@@ -81,7 +81,7 @@ def train_model(cfg_file: str):
 
         for batch_idx, (data, target, mask, target_embed) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch + 1}"):
             mask = mask.unsqueeze(1).expand(-1, 1, -1)
-            data, target, mask = data.to(device), target.to(device), mask.to(device)
+            data, target, mask,  target_embed = data.to(device), target.to(device), mask.to(device),  target_embed.to(device)
 
             optimizer.zero_grad()
             output, emb = model(data, mask)
@@ -154,7 +154,7 @@ def validate_model(model, val_loader, criterion, lam, device):
     with torch.no_grad():
         for batch_idx, (data, target, mask, target_embed) in tqdm(enumerate(val_loader), total=len(val_loader), desc=f"Validation"):
             mask = mask.unsqueeze(1).expand(-1, 1, -1)
-            data, target, mask = data.to(device), target.to(device), mask.to(device)
+            data, target, mask, target_embed = data.to(device), target.to(device), mask.to(device),target_embed.to(device)
 
             output, emb = model(data, mask)
 
