@@ -11,7 +11,7 @@ training:
   random_seed: 44
   model_dir: "./SavedModels/kaggle-ex13-912c-attention-102kpt"
   optimizer: adam
-  learning_rate: 0.0001
+  learning_rate: 0.001
   batch_size: 32
   epochs: 200
   shuffle: true
@@ -19,7 +19,7 @@ training:
   betas:
     - 0.9
     - 0.998
-  learning_rate_min: 0.000001
+  learning_rate_min: 0.00001
   patience: 6
   decrease_factor: 0.8
   # es_patience: 10
