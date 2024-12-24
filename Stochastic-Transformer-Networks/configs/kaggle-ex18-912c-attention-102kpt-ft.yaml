@@ -28,7 +28,7 @@ model:
   inference_sample_size: 4
   encoder:
     use_checkpoint: true
-    checkpoint: ./SavedModels/pretrained/best.ckpt
+    checkpoint: ./SavedModels/pretrained/best-3-encoders.ckpt
     skip_encoder: false
     type: transformer
     bayesian_attention: true

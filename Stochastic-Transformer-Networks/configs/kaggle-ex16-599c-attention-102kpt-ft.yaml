@@ -28,7 +28,7 @@ model:
   inference_sample_size: 4
   encoder:
     use_checkpoint: true
-    checkpoint: ./SavedModels/pretrained/best.ckpt
+    checkpoint: ./SavedModels/pretrained/best-2-encoders.ckpt
     skip_encoder: false
     type: transformer
     bayesian_attention: true
@@ -36,7 +36,7 @@ model:
     ibp: false
     activation: lwta
     lwta_competitors: 4
-    num_layers: 3
+    num_layers: 2
     num_heads: 8
     embeddings:
       embedding_dim: 512
