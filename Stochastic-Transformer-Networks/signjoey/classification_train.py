@@ -41,11 +41,24 @@ def train_model(cfg_file: str):
 
     model.to(device)
 
+    freeze = train_config.get('freeze', False)
+    if freeze:
+        layers_to_freeze = train_config.get('freeze_en_layers', 0)
+        if layers_to_freeze > cfg['model']['encoder']['num_layers']:
+            logger.info(f"Encoder has {cfg['model']['encoder']['num_layers']} layers. Asked to freeze {layers_to_freeze} layers!")
+            logger.info('All encoder attention layers will be freezed.')
+            layers_to_freeze = cfg['model']['encoder']['num_layers']
+        for i in range(layers_to_freeze):
+            for p_name, param in model.encoder.layers[i].src_src_att.named_parameters():
+                logger.info(f"freezing layer: {p_name}")
+                param.requires_grad = False
+
 
     # optimization
     current_lr = train_config["learning_rate"]
     optimizer = build_optimizer(
-        config=train_config, parameters=model.parameters()
+        config=train_config,
+        parameters=filter(lambda p: p.requires_grad, model.parameters())
     )
 
     criterion = torch.nn.CrossEntropyLoss()
@@ -72,6 +85,7 @@ def train_model(cfg_file: str):
     best_val_loss = float('inf')
     # batch_size = train_config["batch_size"]
 
+    logger.info("Training Starts...")
     for epoch in range(num_epochs):
         model.train()
         total_loss = 0

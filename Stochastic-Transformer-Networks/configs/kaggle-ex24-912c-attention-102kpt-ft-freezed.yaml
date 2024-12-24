@@ -1,7 +1,7 @@
-name: example_experiment
+name: kaggle-ex24-912c-attention-102kpt-ft-freezed
 data:
-  train_data_path: ./data/sinhala-word-5fps-20sample-122classes-102kpt-train.pkl
-  test_data_path: ./data/sinhala-word-5fps-20sample-122classes-102kpt-test.pkl
+  train_data_path: ./data/sinhala-word-5fps-5sample-912classes-102kpt-train.pkl
+  test_data_path: ./data/sinhala-word-5fps-5sample-912classes-102kpt-test.pkl
   val_split: 0.2
   feature_size: 204 # 102x2
   batch_size: 32
@@ -9,13 +9,13 @@ data:
 training:
   # load_model: "./SavedModels/example/13400.ckpt"
   random_seed: 44
-  model_dir: "./SavedModels/classification-01"
+  model_dir: "./SavedModels/kaggle-ex24-912c-attention-102kpt-ft-freezed"
   optimizer: adam
   learning_rate: 0.001
   batch_size: 32
-  epochs: 1
+  epochs: 200
   shuffle: true
-  use_cuda: false
+  use_cuda: true
   betas:
     - 0.9
     - 0.998
@@ -25,7 +25,7 @@ training:
   # es_patience: 10
   # es_min_delta: 0
   freeze: true
-  freeze_en_layers: 1
+  freeze_en_layers: 2
 model:
   inference_sample_size: 4
   encoder:
@@ -53,9 +53,9 @@ model:
     ff_size: 2048
     dropout: 0.2
   classification_head:
-    type: mlp # mlp, attention, conv, rnn
+    type: attention # mlp, attention, conv, rnn
     input_size: 512
-    num_classes: 122
+    num_classes: 912
     kernel_size: 3 # if conv
     num_filters: 64 # if conv
     hidden_size: 128 # if mlp/rnn
