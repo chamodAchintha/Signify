@@ -88,7 +88,7 @@ model:
         ibp: false
         activation: relu
         lwta_competitors: 4 
-        num_layers: 2 #increse to 6
+        num_layers: 3 #increse to 6
         num_heads: 8
         embeddings:
             embedding_dim: 512
@@ -104,7 +104,7 @@ model:
         dropout: 0.2
     decoder:
         type: transformer
-        num_layers: 2 # increse to 6
+        num_layers: 3 # increse to 6
         num_heads: 8
         bayesian_attention: false
         bayesian_feedforward: false
