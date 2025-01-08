@@ -1,4 +1,5 @@
 import os
+import shutil
 import torch
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
@@ -19,6 +20,8 @@ def train_model(cfg_file: str):
 
     # output path
     os.makedirs(train_config["model_dir"], exist_ok=True)
+
+    shutil.copy2(cfg_file, train_config["model_dir"] + "/config.yaml")
 
     logger = make_logger(model_dir=train_config["model_dir"], log_file=f"{cfg['name']}_train.log")
     validation_file = f"{train_config['model_dir']}/{cfg['name']}_validation.txt"
