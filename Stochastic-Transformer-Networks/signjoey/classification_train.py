@@ -51,9 +51,13 @@ def train_model(cfg_file: str):
             logger.info(f"Encoder has {cfg['model']['encoder']['num_layers']} layers. Asked to freeze {layers_to_freeze} layers!")
             logger.info('All encoder attention layers will be freezed.')
             layers_to_freeze = cfg['model']['encoder']['num_layers']
-        for i in range(layers_to_freeze):
-            for p_name, param in model.encoder.layers[i].src_src_att.named_parameters():
-                logger.info(f"freezing layer: {p_name}")
+        # for i in range(layers_to_freeze):
+        #     for p_name, param in model.encoder.layers[i].src_src_att.named_parameters():
+        #         logger.info(f"freezing layer: {p_name}")
+        #         param.requires_grad = False
+        for i in range(len(model.encoder.layers)-1 , len(model.encoder.layers) - layers_to_freeze -1, -1):
+            for p_name, param in model.encoder.layers[i].named_parameters():
+                logger.info(f"freezing layer {i}: {p_name}")
                 param.requires_grad = False
 
 
