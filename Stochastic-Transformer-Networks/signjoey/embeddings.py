@@ -374,6 +374,8 @@ class GNNEmbeddings(nn.Module):
         :param mask: Optional mask for inputs.
         :return: GNN-based embeddings (batch_size, 102, embedding_dim).
         """
+        print(x.size())
+        print("Testing")
         batch_size, _ = x.size()
 
         # Reshape input: (batch_size, 204) -> (batch_size, 102, 2)
