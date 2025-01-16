@@ -370,33 +370,39 @@ class GNNEmbeddings(nn.Module):
         """
         Forward pass through GNN embedding layer.
 
-        :param x: Input features (batch_size, 204).
+        :param x: Input features (batch_size, n, 204), where n is the number of frames.
         :param mask: Optional mask for inputs.
-        :return: GNN-based embeddings (batch_size, 102, embedding_dim).
+        :return: GNN-based embeddings (batch_size, n, 102, embedding_dim).
         """
-        print(x.size())
-        print("Testing")
-        batch_size, _ = x.size()
+        batch_size, n, _ = x.size()
 
-        # Reshape input: (batch_size, 204) -> (batch_size, 102, 2)
-        x = x.view(batch_size, 102, 2)
+        # Reshape input: (batch_size, n, 204) -> (batch_size, n, 102, 2)
+        x = x.view(batch_size, n, 102, 2)
 
-        # Process each graph in the batch
+        # Process each graph in the batch and each frame sequence
         outputs = []
         for i in range(batch_size):
-            node_features = x[i]  # Shape: (102, 2)
-            
-            # Apply GNN to compute node embeddings
-            gnn_output = self.gnn(node_features, self.edge_index)  # Shape: (102, gnn_hidden_dim)
-            
-            if self.activation:
-                gnn_output = self.activation(gnn_output)
+            sentence_frames = x[i]  # Shape: (n, 102, 2)
+            sentence_embeddings = []
 
-            # Project to embedding_dim
-            embeddings = self.proj(gnn_output)  # Shape: (102, embedding_dim)
-            outputs.append(embeddings)
+            for j in range(sentence_frames.size(0)):  # Iterate over n frames
+                frame_features = sentence_frames[j]  # Shape: (102, 2)
 
-        # Stack results for the batch: (batch_size, 102, embedding_dim)
+                # Apply GNN to compute node embeddings for the frame
+                gnn_output = self.gnn(frame_features, self.edge_index)  # Shape: (102, gnn_hidden_dim)
+                
+                if self.activation:
+                    gnn_output = self.activation(gnn_output)
+
+                # Project to embedding_dim
+                frame_embeddings = self.proj(gnn_output)  # Shape: (102, embedding_dim)
+                sentence_embeddings.append(frame_embeddings)
+
+            # Stack results for all frames in the sentence: (n, 102, embedding_dim)
+            sentence_embeddings = torch.stack(sentence_embeddings, dim=0)
+            outputs.append(sentence_embeddings)
+
+        # Stack results for the batch: (batch_size, n, 102, embedding_dim)
         outputs = torch.stack(outputs, dim=0)
 
         # Optional scaling
@@ -404,6 +410,7 @@ class GNNEmbeddings(nn.Module):
             outputs *= self.scale_factor
 
         return outputs
+
 
     def __repr__(self):
         return f"{self.__class__.__name__}(embedding_dim={self.embedding_dim}, input_size={self.input_size}, gnn_hidden_dim={self.gnn_hidden_dim})"
