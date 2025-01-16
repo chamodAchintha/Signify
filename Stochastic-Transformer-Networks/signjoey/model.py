@@ -450,7 +450,6 @@ def build_model(
         #         inference_sample_size=cfg['inference_sample_size']
         #     )
             sgn_embed: GNNEmbeddings = GNNEmbeddings(
-                **cfg["encoder"]["embeddings"],
                 embedding_dim=cfg["encoder"]["embeddings"]["embedding_dim"],
                 input_size=sgn_dim,
                 gnn_hidden_dim=cfg["encoder"]["embeddings"].get("gnn_hidden_dim", 64),  # Default to 64 if not in cfg
