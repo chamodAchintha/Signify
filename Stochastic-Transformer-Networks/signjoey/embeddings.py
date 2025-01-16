@@ -5,6 +5,7 @@ from torch import nn, Tensor
 import torch.nn.functional as F
 from signjoey.helpers import freeze_params
 from signjoey.layers import  DenseBayesian,EmbeddingBayesian
+from torch_geometric.nn import GCNConv  # Import GCN layer
 
 
 def get_activation(activation_type):
@@ -308,3 +309,99 @@ class SpatialEmbeddings(nn.Module):
             self.embedding_dim,
             self.input_size,
         )
+
+
+
+
+
+class GNNEmbeddings(nn.Module):
+    edges = [[0, 6], [0, 5], [6, 8], [5, 7], [0, 62], [62, 63], [63, 64], [59, 64], [59, 60], [60, 61], [61, 62], [0, 74], [71, 72], [72, 73], [73, 74], [74, 75], [75, 76], [76, 77], [77, 78], [78, 79], [79, 80], [80, 81], [81, 82], [71, 82], [71, 83], [77, 87], [83, 84], [84, 85], [85, 86], [86, 87], [87, 88], [88, 89], [89, 90], [83, 90], [0, 65], [65, 66], [66, 67], [67, 68], [68, 69], [69, 70], [65, 70], [7, 91], [91, 92], [92, 93], [93, 94], [94, 95], [91, 96], [96, 97], [97, 98], [98, 99], [91, 100], [100, 101], [101, 102], [102, 103], [91, 104], [104, 105], [105, 106], [106, 107], [91, 108], [108, 109], [109, 110], [110, 111], [8, 112], [112, 113], [113, 114], [114, 115], [115, 116], [112, 117], [117, 118], [118, 119], [119, 120], [112, 121], [121, 122], [122, 123], [123, 124], [112, 125], [125, 126], [126, 127], [127, 128], [112, 129], [129, 130], [130, 131], [131, 132]]
+    edge_index = torch.tensor(edges, dtype=torch.long).T
+    def __init__(
+        self,
+        embedding_dim: int,
+        input_size: int,
+        gnn_hidden_dim: int,
+        edge_index: torch.Tensor = edge_index,
+        freeze: bool = False,
+        activation_type: str = 'relu',
+        scale: bool = False,
+        scale_factor: float = None,
+    ):
+        """
+        Create embeddings using GNN layers.
+
+        :param embedding_dim: Dimension of the output embeddings.
+        :param input_size: Dimension of the input features (should be 2 for [x, y]).
+        :param gnn_hidden_dim: Hidden dimension for the GNN layer.
+        :param edge_index: Edge index defining the graph structure.
+        :param freeze: Freeze the embeddings during training.
+        :param activation_type: Activation function to use.
+        :param scale: Whether to scale embeddings.
+        :param scale_factor: Scaling factor.
+        """
+        super().__init__()
+        self.embedding_dim = embedding_dim
+        self.input_size = input_size  # Should be 2 for [x, y]
+        self.gnn_hidden_dim = gnn_hidden_dim
+
+        # Define GCN layer
+        self.gnn = GCNConv(input_size, gnn_hidden_dim)
+
+        # Linear layer to project GNN output to the desired embedding_dim
+        self.proj = nn.Linear(gnn_hidden_dim, embedding_dim)
+
+        # Activation function
+        self.activation = get_activation(activation_type) if activation_type else None
+
+        # Graph structure (edge index)
+        self.edge_index = edge_index
+
+        # Scaling factor
+        self.scale = scale
+        if self.scale:
+            self.scale_factor = scale_factor if scale_factor else math.sqrt(self.embedding_dim)
+
+        # Freeze parameters if needed
+        if freeze:
+            freeze_params(self)
+
+    def forward(self, x: torch.Tensor, mask: torch.Tensor = None) -> torch.Tensor:
+        """
+        Forward pass through GNN embedding layer.
+
+        :param x: Input features (batch_size, 204).
+        :param mask: Optional mask for inputs.
+        :return: GNN-based embeddings (batch_size, 102, embedding_dim).
+        """
+        batch_size, _ = x.size()
+
+        # Reshape input: (batch_size, 204) -> (batch_size, 102, 2)
+        x = x.view(batch_size, 102, 2)
+
+        # Process each graph in the batch
+        outputs = []
+        for i in range(batch_size):
+            node_features = x[i]  # Shape: (102, 2)
+            
+            # Apply GNN to compute node embeddings
+            gnn_output = self.gnn(node_features, self.edge_index)  # Shape: (102, gnn_hidden_dim)
+            
+            if self.activation:
+                gnn_output = self.activation(gnn_output)
+
+            # Project to embedding_dim
+            embeddings = self.proj(gnn_output)  # Shape: (102, embedding_dim)
+            outputs.append(embeddings)
+
+        # Stack results for the batch: (batch_size, 102, embedding_dim)
+        outputs = torch.stack(outputs, dim=0)
+
+        # Optional scaling
+        if self.scale:
+            outputs *= self.scale_factor
+
+        return outputs
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(embedding_dim={self.embedding_dim}, input_size={self.input_size}, gnn_hidden_dim={self.gnn_hidden_dim})"

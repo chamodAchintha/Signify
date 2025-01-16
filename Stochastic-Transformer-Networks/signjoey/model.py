@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch
 from itertools import groupby
 from signjoey.initialization import initialize_model
-from signjoey.embeddings import Embeddings, SpatialEmbeddings
+from signjoey.embeddings import Embeddings, SpatialEmbeddings, GNNEmbeddings
 from signjoey.encoders import Encoder, RecurrentEncoder, TransformerEncoder
 from signjoey.decoders import Decoder, RecurrentDecoder, TransformerDecoder
 from signjoey.search import beam_search, greedy
@@ -42,7 +42,7 @@ class SignModel(nn.Module):
         encoder: Encoder,
         gloss_output_layer: nn.Module,
         decoder: Decoder,
-        sgn_embed: SpatialEmbeddings,
+        sgn_embed: GNNEmbeddings,
         txt_embed: Embeddings,
         gls_vocab: GlossVocabulary,
         txt_vocab: TextVocabulary,
@@ -443,12 +443,19 @@ def build_model(
                 
             )
        else:
-           sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
+        #    sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
+        #         **cfg["encoder"]["embeddings"],
+        #         num_heads=cfg["encoder"]["num_heads"],
+        #         input_size=sgn_dim,
+        #         inference_sample_size=cfg['inference_sample_size']
+        #     )
+            sgn_embed: GNNEmbeddings = GNNEmbeddings(
                 **cfg["encoder"]["embeddings"],
-                num_heads=cfg["encoder"]["num_heads"],
+                embedding_dim=cfg["encoder"]["embeddings"]["embedding_dim"],
                 input_size=sgn_dim,
-                inference_sample_size=cfg['inference_sample_size']
+                gnn_hidden_dim=cfg["encoder"]["embeddings"].get("gnn_hidden_dim", 64),  # Default to 64 if not in cfg
             )
+
         
     # build encoder
     enc_dropout = cfg["encoder"].get("dropout", 0.0)

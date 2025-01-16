@@ -4,7 +4,6 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv
 
 from torch import Tensor
 from signjoey.layers import DenseBayesian
@@ -22,7 +21,7 @@ class MultiHeadedAttention(nn.Module):
     https://github.com/OpenNMT/OpenNMT-py
     """
     kls=0
-    def __init__(self, num_heads: int, size: int, dropout: float = 0.1,bayesian=False,ibp=False,sizek=None,scale_out=1.0,edge_index: Tensor = torch.tensor([[0,0]])):
+    def __init__(self, num_heads: int, size: int, dropout: float = 0.1,bayesian=False,ibp=False,sizek=None,scale_out=1.0):
         """
         Create a multi-headed attention layer.
         :param num_heads: the number of heads
@@ -209,68 +208,56 @@ class PositionalEncoding(nn.Module):
         return emb + self.pe[:, : emb.size(1)]
 
 
-
 class TransformerEncoderLayer(nn.Module):
+    """
+    One Transformer encoder layer has a Multi-head attention layer plus
+    a position-wise feed-forward layer.
+    """
+
     def __init__(
         self, size: int = 0, ff_size: int = 0, num_heads: int = 0, dropout: float = 0.1,
-        bayesian_attention=False, bayesian_feedforward=False, ibp=False,
-        activation='relu', lwta_competitors=4, gcn_hidden_dim=128, edge_index: Tensor = torch.tensor([[0,0]])
+        bayesian_attention=False,bayesian_feedforward=False,ibp=False,activation='relu',lwta_competitors=4
     ):
+        """
+        A single Transformer layer.
+        :param size:
+        :param ff_size:
+        :param num_heads:
+        :param dropout:
+        """
         super(TransformerEncoderLayer, self).__init__()
-
-        # Layer Normalization
+        
         self.layer_norm = nn.LayerNorm(size, eps=1e-6)
-
-        # GCN Layer
-        self.gcn = GCNConv(2, gcn_hidden_dim)  # Input size 2 (x, y keypoints)
-        self.gcn_proj = nn.Linear(gcn_hidden_dim, size)  # Project GCN output to transformer input size
-
-        # Self-Attention Layer
-        self.src_src_att = MultiHeadedAttention(
-            num_heads, size, dropout=dropout,
-            bayesian=bayesian_attention, ibp=ibp, scale_out=(0.125)
+        self.src_src_att = MultiHeadedAttention(num_heads, size, dropout=dropout,
+            bayesian=bayesian_attention,ibp=ibp,scale_out=(0.125))
+        self.src_src_att.ran=True
+        self.feed_forward = PositionwiseFeedForward( input_size=size, ff_size=ff_size, dropout=dropout,
+            bayesian=bayesian_feedforward,ibp=ibp,activation=activation,lwta_competitors=lwta_competitors,scale_out=(0.2)
         )
-        self.src_src_att.ran = True
-
-        # Feed-Forward Layer
-        self.feed_forward = PositionwiseFeedForward(
-            input_size=size, ff_size=ff_size, dropout=dropout,
-            bayesian=bayesian_feedforward, ibp=ibp,
-            activation=activation, lwta_competitors=lwta_competitors, scale_out=(0.2)
-        )
-
-        # Dropout
         self.dropout = nn.Dropout(dropout)
         self.size = size
-        self.edge_index = edge_index  # Save edge_index for GCN
-
+     
+    # pylint: disable=arguments-differ
     def forward(self, x: Tensor, mask: Tensor) -> Tensor:
         """
-        Forward pass with GCN applied first.
+        Forward pass for a single transformer encoder layer.
+        First applies layer norm, then self attention,
+        then dropout with residual connection (adding the input to the result),
+        and then a position-wise feed-forward layer.
+
+        :param x: layer input
+        :param mask: input mask
+        :return: output tensor
         """
-        # Reshape input for GCN (assume x is of shape [batch_size, 204])
-        print(x.shape)
-        print("testing")
-        batch_size, seq_len = x.shape
-        h = x.view(batch_size, -1, 2)  # Reshape to [batch_size, 102, 2]
-        h_flattened = h.view(-1, 2)  # Flatten for GCN input
-
-        # Apply GCN
-        gcn_output = self.gcn(h_flattened, self.edge_index)  # GCN processing
-        gcn_output = F.relu(gcn_output)
-        gcn_output = self.gcn_proj(gcn_output)  # Project back to size
-        gcn_output = gcn_output.view(batch_size, seq_len)  # Reshape back to [batch_size, 204]
-
-        # Layer Normalization and Self-Attention
-        gcn_output = self.layer_norm(gcn_output)
-        h = self.src_src_att(gcn_output, gcn_output, gcn_output, mask)
-        h = self.dropout(h) + gcn_output  # Residual connection
-
-        # Feed-Forward Network
+        x_norm = self.layer_norm(x)
+     
+        h = self.src_src_att(x_norm, x_norm, x_norm, mask)
+    
+        h = self.dropout(h) + x
         o = self.feed_forward(h)
         return o
 
-
+    
     
 class TransformerDecoderLayer(nn.Module):
     """

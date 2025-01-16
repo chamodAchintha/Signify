@@ -163,8 +163,6 @@ class TransformerEncoder(Encoder):
     """
     Transformer Encoder
     """
-    edge_index: Tensor = torch.tensor([[0, 6], [0, 5], [6, 8], [5, 7], [0, 62], [62, 63], [63, 64], [59, 64], [59, 60], [60, 61], [61, 62], [0, 74], [71, 72], [72, 73], [73, 74], [74, 75], [75, 76], [76, 77], [77, 78], [78, 79], [79, 80], [80, 81], [81, 82], [71, 82], [71, 83], [77, 87], [83, 84], [84, 85], [85, 86], [86, 87], [87, 88], [88, 89], [89, 90], [83, 90], [0, 65], [65, 66], [66, 67], [67, 68], [68, 69], [69, 70], [65, 70], [7, 91], [91, 92], [92, 93], [93, 94], [94, 95], [91, 96], [96, 97], [97, 98], [98, 99], [91, 100], [100, 101], [101, 102], [102, 103], [91, 104], [104, 105], [105, 106], [106, 107], [91, 108], [108, 109], [109, 110], [110, 111], [8, 112], [112, 113], [113, 114], [114, 115], [115, 116], [112, 117], [117, 118], [118, 119], [119, 120], [112, 121], [121, 122], [122, 123], [123, 124], [112, 125], [125, 126], [126, 127], [127, 128], [112, 129], [129, 130], [130, 131], [131, 132]]).t().contiguous()
-
 
     # pylint: disable=unused-argument
     def __init__(
@@ -183,8 +181,6 @@ class TransformerEncoder(Encoder):
         inference_sample_size: int = 10,
         activation: str ='relu',
         lwta_competitors: int = 4,
-        edge_index: Tensor = edge_index,
-
         **kwargs
     ):
         """
@@ -225,7 +221,6 @@ class TransformerEncoder(Encoder):
                     ff_size=ff_size,
                     num_heads=num_heads,
                     dropout=dropout,
-                    edge_index=edge_index,
                     
                     bayesian_attention=bayesian_attention,
                     bayesian_feedforward=bayesian_feedforward,
@@ -248,39 +243,32 @@ class TransformerEncoder(Encoder):
         if freeze:
             freeze_params(self)
             
-
-
+   
+    # pylint: disable=arguments-differ
     def forward(
-        self, embed_src: Tensor, src_length: Tensor, mask: Tensor, edge_index: Tensor = edge_index
+        self, embed_src: Tensor, src_length: Tensor, mask: Tensor
     ) -> (Tensor, Tensor):
-        """
-        Forward pass with GCN integration.
-        :param embed_src: Embedded source inputs (batch_size, src_len, embed_size)
-        :param src_length: Length of source inputs (batch_size,)
-        :param mask: Attention mask (batch_size, src_len, src_len)
-        :param edge_index: Graph edges for GCN (required by each layer)
-        :return: Encoded output and None
-        """
         if self.training:
-            return self.forward_(embed_src, src_length, mask, edge_index)
+            return self.forward_(embed_src,src_length,mask)
         else:
-            out = []
-            embed_s = embed_src.shape[-1]
-            inference_sample_size = max(self.inference_sample_size, embed_s)
-
+            
+            out=[]
+            embed_s=embed_src.shape[-1]
+            inference_sample_size= max(self.inference_sample_size,embed_s)
             for i in range(inference_sample_size):
-                x_, _ = self.forward_(
-                    embed_src[..., i % embed_s], src_length, mask, edge_index
-                )
-                out.append(torch.unsqueeze(x_, -1))
-
-            out = torch.cat(out, -1)
-            return out, None
-
+               
+               x_, _=  self.forward_(embed_src[...,i%embed_s],src_length,mask)
+               
+               out.append(torch.unsqueeze(x_,-1))
+        out=torch.cat(out,-1)
+      
+ 
+        
+        return out, None
     
-
+    #hidden forward (single run)
     def forward_(
-        self, embed_src: Tensor, src_length: Tensor, mask: Tensor, edge_index: Tensor = edge_index
+        self, embed_src: Tensor, src_length: Tensor, mask: Tensor
     ) -> (Tensor, Tensor):
         """
         Pass the input (and mask) through each layer in turn.
@@ -294,22 +282,27 @@ class TransformerEncoder(Encoder):
             (counting tokens before padding), shape (batch_size)
         :param mask: indicates padding areas (zeros where padding), shape
             (batch_size, src_len, embed_size)
-        :param edge_index: graph edges for GCN processing
         :return:
             - output: hidden states with
                 shape (batch_size, max_length, directions*hidden),
             - hidden_concat: last hidden state with
                 shape (batch_size, directions*hidden)
         """
+
         x = embed_src
         x = self.pe(x)  # add position encoding to word embeddings
         x = self.emb_dropout(x)
-
         if not self.skip_encoder:
             for layer in self.layers:
-                # Pass edge_index to each TransformerEncoderLayer
-                x = layer(x, mask)
-
-        x = self.layer_norm(x)  # Normalize final output
+                x = layer(x,mask )
+        
+       
+        x=self.layer_norm(x)
         return x, None
 
+    def __repr__(self):
+        return "%s(num_layers=%r, num_heads=%r)" % (
+            self.__class__.__name__,
+            len(self.layers),
+            self.layers[0].src_src_att.num_heads,
+        )
