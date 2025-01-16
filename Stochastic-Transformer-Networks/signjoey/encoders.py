@@ -308,7 +308,7 @@ class TransformerEncoder(Encoder):
         if not self.skip_encoder:
             for layer in self.layers:
                 # Pass edge_index to each TransformerEncoderLayer
-                x = layer(x, mask, edge_index)
+                x = layer(x, mask)
 
         x = self.layer_norm(x)  # Normalize final output
         return x, None
