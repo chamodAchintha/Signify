@@ -214,12 +214,16 @@ class TransformerEncoderLayer(nn.Module):
     def __init__(
         self, size: int = 0, ff_size: int = 0, num_heads: int = 0, dropout: float = 0.1,
         bayesian_attention=False, bayesian_feedforward=False, ibp=False,
-        activation='relu', lwta_competitors=4, gcn_hidden_dim=64, edge_index: Tensor = torch.tensor([[0,0]])
+        activation='relu', lwta_competitors=4, gcn_hidden_dim=128, edge_index: Tensor = torch.tensor([[0,0]])
     ):
         super(TransformerEncoderLayer, self).__init__()
 
         # Layer Normalization
         self.layer_norm = nn.LayerNorm(size, eps=1e-6)
+
+        # GCN Layer
+        self.gcn = GCNConv(2, gcn_hidden_dim)  # Input size 2 (x, y keypoints)
+        self.gcn_proj = nn.Linear(gcn_hidden_dim, size)  # Project GCN output to transformer input size
 
         # Self-Attention Layer
         self.src_src_att = MultiHeadedAttention(
@@ -235,35 +239,30 @@ class TransformerEncoderLayer(nn.Module):
             activation=activation, lwta_competitors=lwta_competitors, scale_out=(0.2)
         )
 
-        # GCN Layer
-        self.gcn = GCNConv(2, gcn_hidden_dim)  # GCN with input features of size 2
-        self.gcn_proj = nn.Linear(gcn_hidden_dim, size)  # Project back to size
-
         # Dropout
         self.dropout = nn.Dropout(dropout)
         self.size = size
+        self.edge_index = edge_index  # Save edge_index for GCN
 
-    def forward(self, x: Tensor, mask: Tensor, edge_index: Tensor) -> Tensor:
+    def forward(self, x: Tensor, mask: Tensor) -> Tensor:
         """
-        Forward pass with GCN layer added.
+        Forward pass with GCN applied first.
         """
-        # Layer Normalization and Self-Attention
-        x_norm = self.layer_norm(x)
-        h = self.src_src_att(x_norm, x_norm, x_norm, mask)
-        h = self.dropout(h) + x  # Residual connection
-
-        # Reshape (204 -> 102, 2) for GCN
-        h = h.view(-1, 102, 2)  # Assumes 204 is flattened as (102, 2)
+        # Reshape input for GCN (assume x is of shape [batch_size, 204])
+        batch_size, seq_len = x.shape
+        h = x.view(batch_size, -1, 2)  # Reshape to [batch_size, 102, 2]
         h_flattened = h.view(-1, 2)  # Flatten for GCN input
 
         # Apply GCN
-        gcn_output = self.gcn(h_flattened, edge_index)  # GCN processing
+        gcn_output = self.gcn(h_flattened, self.edge_index)  # GCN processing
         gcn_output = F.relu(gcn_output)
-        gcn_output = self.gcn_proj(gcn_output)  # Project back to original size
-        gcn_output = gcn_output.view_as(h)  # Reshape back to (batch_size, 102, 2)
+        gcn_output = self.gcn_proj(gcn_output)  # Project back to size
+        gcn_output = gcn_output.view(batch_size, seq_len)  # Reshape back to [batch_size, 204]
 
-        # Add GCN output back to transformer embeddings
-        h = h + self.dropout(gcn_output)
+        # Layer Normalization and Self-Attention
+        gcn_output = self.layer_norm(gcn_output)
+        h = self.src_src_att(gcn_output, gcn_output, gcn_output, mask)
+        h = self.dropout(h) + gcn_output  # Residual connection
 
         # Feed-Forward Network
         o = self.feed_forward(h)
