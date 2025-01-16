@@ -22,7 +22,7 @@ class MultiHeadedAttention(nn.Module):
     https://github.com/OpenNMT/OpenNMT-py
     """
     kls=0
-    def __init__(self, num_heads: int, size: int, dropout: float = 0.1,bayesian=False,ibp=False,sizek=None,scale_out=1.0):
+    def __init__(self, num_heads: int, size: int, dropout: float = 0.1,bayesian=False,ibp=False,sizek=None,scale_out=1.0,edge_index= torch.tensor([[0,0]])):
         """
         Create a multi-headed attention layer.
         :param num_heads: the number of heads
