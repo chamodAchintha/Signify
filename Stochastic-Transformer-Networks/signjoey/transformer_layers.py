@@ -249,6 +249,8 @@ class TransformerEncoderLayer(nn.Module):
         Forward pass with GCN applied first.
         """
         # Reshape input for GCN (assume x is of shape [batch_size, 204])
+        print(x.shape)
+        print("testing")
         batch_size, seq_len = x.shape
         h = x.view(batch_size, -1, 2)  # Reshape to [batch_size, 102, 2]
         h_flattened = h.view(-1, 2)  # Flatten for GCN input
