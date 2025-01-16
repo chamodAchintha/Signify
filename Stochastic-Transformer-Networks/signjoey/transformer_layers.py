@@ -22,7 +22,7 @@ class MultiHeadedAttention(nn.Module):
     https://github.com/OpenNMT/OpenNMT-py
     """
     kls=0
-    def __init__(self, num_heads: int, size: int, dropout: float = 0.1,bayesian=False,ibp=False,sizek=None,scale_out=1.0,edge_index= torch.tensor([[0,0]])):
+    def __init__(self, num_heads: int, size: int, dropout: float = 0.1,bayesian=False,ibp=False,sizek=None,scale_out=1.0,edge_index: Tensor = torch.tensor([[0,0]])):
         """
         Create a multi-headed attention layer.
         :param num_heads: the number of heads
@@ -214,7 +214,7 @@ class TransformerEncoderLayer(nn.Module):
     def __init__(
         self, size: int = 0, ff_size: int = 0, num_heads: int = 0, dropout: float = 0.1,
         bayesian_attention=False, bayesian_feedforward=False, ibp=False,
-        activation='relu', lwta_competitors=4, gcn_hidden_dim=64
+        activation='relu', lwta_competitors=4, gcn_hidden_dim=64, edge_index: Tensor = torch.tensor([[0,0]])
     ):
         super(TransformerEncoderLayer, self).__init__()
 
