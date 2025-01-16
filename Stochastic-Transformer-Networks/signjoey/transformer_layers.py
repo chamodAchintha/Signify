@@ -209,55 +209,6 @@ class PositionalEncoding(nn.Module):
         return emb + self.pe[:, : emb.size(1)]
 
 
-# class TransformerEncoderLayer(nn.Module):
-#     """
-#     One Transformer encoder layer has a Multi-head attention layer plus
-#     a position-wise feed-forward layer.
-#     """
-
-#     def __init__(
-#         self, size: int = 0, ff_size: int = 0, num_heads: int = 0, dropout: float = 0.1,
-#         bayesian_attention=False,bayesian_feedforward=False,ibp=False,activation='relu',lwta_competitors=4
-#     ):
-#         """
-#         A single Transformer layer.
-#         :param size:
-#         :param ff_size:
-#         :param num_heads:
-#         :param dropout:
-#         """
-#         super(TransformerEncoderLayer, self).__init__()
-        
-#         self.layer_norm = nn.LayerNorm(size, eps=1e-6)
-#         self.src_src_att = MultiHeadedAttention(num_heads, size, dropout=dropout,
-#             bayesian=bayesian_attention,ibp=ibp,scale_out=(0.125))
-#         self.src_src_att.ran=True
-#         self.feed_forward = PositionwiseFeedForward( input_size=size, ff_size=ff_size, dropout=dropout,
-#             bayesian=bayesian_feedforward,ibp=ibp,activation=activation,lwta_competitors=lwta_competitors,scale_out=(0.2)
-#         )
-#         self.dropout = nn.Dropout(dropout)
-#         self.size = size
-     
-#     # pylint: disable=arguments-differ
-#     def forward(self, x: Tensor, mask: Tensor) -> Tensor:
-#         """
-#         Forward pass for a single transformer encoder layer.
-#         First applies layer norm, then self attention,
-#         then dropout with residual connection (adding the input to the result),
-#         and then a position-wise feed-forward layer.
-
-#         :param x: layer input
-#         :param mask: input mask
-#         :return: output tensor
-#         """
-#         x_norm = self.layer_norm(x)
-     
-#         h = self.src_src_att(x_norm, x_norm, x_norm, mask)
-    
-#         h = self.dropout(h) + x
-#         o = self.feed_forward(h)
-#         return o
-
 
 class TransformerEncoderLayer(nn.Module):
     def __init__(
@@ -266,28 +217,28 @@ class TransformerEncoderLayer(nn.Module):
         activation='relu', lwta_competitors=4, gcn_hidden_dim=64
     ):
         super(TransformerEncoderLayer, self).__init__()
-        
+
         # Layer Normalization
         self.layer_norm = nn.LayerNorm(size, eps=1e-6)
-        
+
         # Self-Attention Layer
         self.src_src_att = MultiHeadedAttention(
             num_heads, size, dropout=dropout,
             bayesian=bayesian_attention, ibp=ibp, scale_out=(0.125)
         )
         self.src_src_att.ran = True
-        
+
         # Feed-Forward Layer
         self.feed_forward = PositionwiseFeedForward(
             input_size=size, ff_size=ff_size, dropout=dropout,
             bayesian=bayesian_feedforward, ibp=ibp,
             activation=activation, lwta_competitors=lwta_competitors, scale_out=(0.2)
         )
-        
+
         # GCN Layer
         self.gcn = GCNConv(2, gcn_hidden_dim)  # GCN with input features of size 2
         self.gcn_proj = nn.Linear(gcn_hidden_dim, size)  # Project back to size
-        
+
         # Dropout
         self.dropout = nn.Dropout(dropout)
         self.size = size
@@ -310,14 +261,13 @@ class TransformerEncoderLayer(nn.Module):
         gcn_output = F.relu(gcn_output)
         gcn_output = self.gcn_proj(gcn_output)  # Project back to original size
         gcn_output = gcn_output.view_as(h)  # Reshape back to (batch_size, 102, 2)
-        
+
         # Add GCN output back to transformer embeddings
         h = h + self.dropout(gcn_output)
 
         # Feed-Forward Network
         o = self.feed_forward(h)
         return o
-
 
 
     

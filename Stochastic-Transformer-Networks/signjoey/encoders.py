@@ -246,28 +246,7 @@ class TransformerEncoder(Encoder):
         if freeze:
             freeze_params(self)
             
-   
-    # # pylint: disable=arguments-differ
-    # def forward(
-    #     self, embed_src: Tensor, src_length: Tensor, mask: Tensor
-    # ) -> (Tensor, Tensor):
-    #     if self.training:
-    #         return self.forward_(embed_src,src_length,mask)
-    #     else:
-            
-    #         out=[]
-    #         embed_s=embed_src.shape[-1]
-    #         inference_sample_size= max(self.inference_sample_size,embed_s)
-    #         for i in range(inference_sample_size):
-               
-    #            x_, _=  self.forward_(embed_src[...,i%embed_s],src_length,mask)
-               
-    #            out.append(torch.unsqueeze(x_,-1))
-    #     out=torch.cat(out,-1)
-      
- 
-        
-    #     return out, None
+
 
     def forward(
         self, embed_src: Tensor, src_length: Tensor, mask: Tensor, edge_index: Tensor
@@ -296,47 +275,6 @@ class TransformerEncoder(Encoder):
             out = torch.cat(out, -1)
             return out, None
 
-    
-    # #hidden forward (single run)
-    # def forward_(
-    #     self, embed_src: Tensor, src_length: Tensor, mask: Tensor
-    # ) -> (Tensor, Tensor):
-    #     """
-    #     Pass the input (and mask) through each layer in turn.
-    #     Applies a Transformer encoder to sequence of embeddings x.
-    #     The input mini-batch x needs to be sorted by src length.
-    #     x and mask should have the same dimensions [batch, time, dim].
-
-    #     :param embed_src: embedded src inputs,
-    #         shape (batch_size, src_len, embed_size)
-    #     :param src_length: length of src inputs
-    #         (counting tokens before padding), shape (batch_size)
-    #     :param mask: indicates padding areas (zeros where padding), shape
-    #         (batch_size, src_len, embed_size)
-    #     :return:
-    #         - output: hidden states with
-    #             shape (batch_size, max_length, directions*hidden),
-    #         - hidden_concat: last hidden state with
-    #             shape (batch_size, directions*hidden)
-    #     """
-
-    #     x = embed_src
-    #     x = self.pe(x)  # add position encoding to word embeddings
-    #     x = self.emb_dropout(x)
-    #     if not self.skip_encoder:
-    #         for layer in self.layers:
-    #             x = layer(x,mask )
-        
-       
-    #     x=self.layer_norm(x)
-    #     return x, None
-
-    # def __repr__(self):
-    #     return "%s(num_layers=%r, num_heads=%r)" % (
-    #         self.__class__.__name__,
-    #         len(self.layers),
-    #         self.layers[0].src_src_att.num_heads,
-    #     )
     
 
     def forward_(
