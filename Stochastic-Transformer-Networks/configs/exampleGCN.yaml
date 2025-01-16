@@ -35,7 +35,7 @@ training:
   reset_best_ckpt: true
   reset_scheduler: true
   reset_optimizer: true
-  random_seed: 54
+  random_seed: 32
   model_dir: ./SavedModels/example23
   recognition_loss_weight: 0
   translation_loss_weight: 1.0
