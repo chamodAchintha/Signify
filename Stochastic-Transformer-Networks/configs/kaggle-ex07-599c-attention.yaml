@@ -1,0 +1,60 @@
+name: kaggle-ex07-599c-attention
+data:
+  train_data_path: ./data/sinhala-word-5fps-15sample-599classes-train.pkl
+  test_data_path: ./data/sinhala-word-5fps-15sample-599classes-test.pkl
+  val_split: 0.2
+  feature_size: 266 # 133x2
+  batch_size: 32
+  seq_length: 40
+training:
+  # load_model: "./SavedModels/example/13400.ckpt"
+  random_seed: 44
+  model_dir: "./SavedModels/kaggle-ex07-599c-attention"
+  optimizer: adam
+  learning_rate: 0.001
+  batch_size: 32
+  epochs: 150
+  shuffle: true
+  use_cuda: true
+  betas:
+    - 0.9
+    - 0.998
+  learning_rate_min: 0.00001
+  patience: 6
+  decrease_factor: 0.8
+  # es_patience: 10
+  # es_min_delta: 0
+model:
+  inference_sample_size: 4
+  encoder:
+    use_checkpoint: false
+    checkpoint: ./output/best-kaggle.ckpt
+    skip_encoder: false
+    type: transformer
+    bayesian_attention: true
+    bayesian_feedforward: true
+    ibp: false
+    activation: lwta
+    lwta_competitors: 4
+    num_layers: 2
+    num_heads: 8
+    embeddings:
+      embedding_dim: 512
+      scale: false
+      bayesian: true
+      ibp: false
+      dropout: 0.2
+      norm_type: batch
+      activation_type: lwta
+      lwta_competitors: 4
+    hidden_size: 512
+    ff_size: 2048
+    dropout: 0.2
+  classification_head:
+    type: attention # mlp, attention, conv, rnn
+    input_size: 512
+    num_classes: 599
+    kernel_size: 3 # if conv
+    num_filters: 64 # if conv
+    hidden_size: 128 # if mlp/rnn
+    dropout_rate: 0.3 # if mlp

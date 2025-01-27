@@ -21,6 +21,7 @@ from signjoey.helpers import (
     make_logger,
     set_seed,
     symlink_update,
+    freeze_params,
 )
 from signjoey.model import SignModel
 from signjoey.prediction import validate_on_data
@@ -1027,6 +1028,37 @@ def train(cfg_file: str) -> None:
     
     # for training management, e.g. early stopping and model selection
     trainer = TrainManager(model=model, config=cfg)
+
+    # Load decoder state
+    if cfg["model"]["decoder"].get('load_decoder', None) is not None:
+        pass
+
+    # load decoder and txt embedding state from checkpoint
+    use_checkpoint = cfg['model']['decoder'].get('use_checkpoint', False)
+    if use_checkpoint:
+        use_cuda = cfg["training"].get("use_cuda", False)
+        checkpoint_path = cfg['model']['decoder']['checkpoint']
+
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint '{checkpoint_path}' does not exist.")
+        
+        model_checkpoint = load_checkpoint(checkpoint_path, use_cuda=use_cuda)
+        decoder_state_dict = {k[8:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('decoder.')}
+        txt_embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('txt_embed.')}
+
+        trainer.model.decoder.load_state_dict(decoder_state_dict)
+        trainer.model.txt_embed.load_state_dict(txt_embed_state_dict)
+        trainer.logger.info(f'loaded text embed and decoder state from the checkpoint - {checkpoint_path}')
+
+    # Freeze the parameters of the decoder
+    if cfg["model"]["decoder"].get('freeze', False):
+        freeze_params(trainer.model.txt_embed)
+        freeze_params(trainer.model.decoder)
+        trainer.logger.info('Freezed the model Decoder and text embedding layers.')
+
+    for name, p in model.named_parameters():
+        if not p.requires_grad:
+            print(name,": ", p.requires_grad)
 
     # store copy of original training config in model dir
     shutil.copy2(cfg_file, trainer.model_dir + "/config.yaml")

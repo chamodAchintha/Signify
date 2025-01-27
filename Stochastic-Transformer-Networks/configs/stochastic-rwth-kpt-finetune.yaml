@@ -1,14 +1,14 @@
-name: example_experiment
+name: stochastic-rwth-kpt-finetune
 data:
   data_path: ./data/
   version: phoenix_2014_trans
   sgn: sign
   txt: text
   gls: gloss
-  train: phoenix14t.pami0.train
-  dev: phoenix14t.pami0.dev
-  test: phoenix14t.pami0.test
-  feature_size: 1024
+  train: rwth_train_keypoints_102.train
+  dev: rwth_dev_keypoints_102.dev
+  test: rwth_dev_keypoints_102.dev
+  feature_size: 204
   level: word
   txt_lowercase: true
   max_sent_length: 400
@@ -37,7 +37,7 @@ training:
   reset_scheduler: true
   reset_optimizer: true
   random_seed: 44
-  model_dir: "./SavedModels/example22"
+  model_dir: "./SavedModels/stochastic-rwth-kpt-finetune"
   recognition_loss_weight: 0
   translation_loss_weight: 1.0
   kl_weight: 1
@@ -104,7 +104,7 @@ model:
     dropout: 0.2
   decoder:
     type: transformer
-    num_layers: 3
+    num_layers: 2
     num_heads: 8
     bayesian_attention: true
     bayesian_feedforward: true
@@ -114,8 +114,8 @@ model:
     lwta_competitors: 4
     embeddings:
       embedding_dim: 512
-      scale: False
-      bayesian: False
+      scale: false
+      bayesian: false
       dropout: 0.2
       norm_type: batch
     hidden_size: 512

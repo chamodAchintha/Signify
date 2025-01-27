@@ -1,14 +1,14 @@
-name: example_experiment
+name: vanilla-rwth-kpt-finetune-without-freeze
 data:
   data_path: ./data/
   version: phoenix_2014_trans
   sgn: sign
   txt: text
   gls: gloss
-  train: phoenix14t.pami0.train
-  dev: phoenix14t.pami0.dev
-  test: phoenix14t.pami0.test
-  feature_size: 1024
+  train: rwth_train_keypoints_102.train
+  dev: rwth_dev_keypoints_102.dev
+  test: rwth_dev_keypoints_102.dev
+  feature_size: 204
   level: word
   txt_lowercase: true
   max_sent_length: 400
@@ -37,7 +37,7 @@ training:
   reset_scheduler: true
   reset_optimizer: true
   random_seed: 44
-  model_dir: "./SavedModels/example22"
+  model_dir: "./SavedModels/vanilla-rwth-kpt-finetune-without-freeze"
   recognition_loss_weight: 0
   translation_loss_weight: 1.0
   kl_weight: 1
@@ -83,22 +83,22 @@ model:
   encoder:
     skip_encoder: false
     type: transformer
-    bayesian_attention: true
-    bayesian_feedforward: true
+    bayesian_attention: false
+    bayesian_feedforward: false
     ibp: false
-    activation: lwta
-    lwta_competitors: 4
+    activation: relu
+    lwta_competitors: 0
     num_layers: 3
     num_heads: 8
     embeddings:
       embedding_dim: 512
       scale: false
-      bayesian: true
+      bayesian: false
       ibp: false
       dropout: 0.2
       norm_type: batch
-      activation_type: lwta
-      lwta_competitors: 4
+      activation_type: relu
+      lwta_competitors: 0
     hidden_size: 512
     ff_size: 2048
     dropout: 0.2
@@ -106,21 +106,21 @@ model:
     type: transformer
     num_layers: 3
     num_heads: 8
-    bayesian_attention: true
-    bayesian_feedforward: true
-    bayesian_output: true
+    bayesian_attention: false
+    bayesian_feedforward: false
+    bayesian_output: false
     ibp: false
-    activation: lwta
-    lwta_competitors: 4
+    activation: relu
+    lwta_competitors: 0
     embeddings:
       embedding_dim: 512
-      scale: False
-      bayesian: False
+      scale: false
+      bayesian: false
       dropout: 0.2
       norm_type: batch
     hidden_size: 512
     ff_size: 2048
     dropout: 0.2
     use_checkpoint: true
-    checkpoint: "./SavedModels/original_data/stochastic_transformer/best.ckpt"
-    freeze: true
+    checkpoint: "./SavedModels/original_data/vanilla_transformer/best.ckpt"
+    freeze: false
