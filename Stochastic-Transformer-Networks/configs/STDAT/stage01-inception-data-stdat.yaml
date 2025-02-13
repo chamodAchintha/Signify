@@ -1,4 +1,4 @@
-name: example_experiment
+name: inception_data_stdat
 data:
   data_path: ./data/
   version: phoenix_2014_trans
@@ -38,7 +38,7 @@ training:
   reset_scheduler: true
   reset_optimizer: true
   random_seed: 44
-  model_dir: "./SavedModels/example22"
+  model_dir: "./SavedModels/inception_data_stdat"
   recognition_loss_weight: 0
   translation_loss_weight: 1.0
   kl_weight: 1
@@ -81,7 +81,7 @@ model:
   tied_softmax: false
   simplified_inference: true
   inference_sample_size: 4
-  seq_len: 400
+  seq_len: 400 # should be same as data.seq_len
   encoder:
     skip_encoder: false
     type: transformer
@@ -125,5 +125,5 @@ model:
     ff_size: 2048
     dropout: 0.2
     use_checkpoint: false
-    checkpoint: "./SavedModels/original_data/stochastic_transformer/best.ckpt"
-    freeze: true
+    checkpoint: ""
+    freeze: false
