@@ -1,4 +1,4 @@
-name: example_experiment
+name: stage01_rwth_keypoint_stdat
 data:
   data_path: ./data/
   version: phoenix_2014_trans
@@ -38,7 +38,7 @@ training:
   reset_scheduler: true
   reset_optimizer: true
   random_seed: 54
-  model_dir: "./SavedModels/example23"
+  model_dir: "./SavedModels/stage01_rwth_keypoint_stdat"
   recognition_loss_weight: 0
   translation_loss_weight: 1.0
   kl_weight: 1
@@ -57,7 +57,7 @@ training:
   eval_translation_beam_alpha: 0
   overwrite: true
   shuffle: true
-  use_cuda: false
+  use_cuda: true
   translation_max_output_length: 30
   keep_last_ckpts: 1
   batch_multiplier: 1
@@ -81,7 +81,7 @@ model:
   tied_softmax: false
   simplified_inference: true
   inference_sample_size: 4
-  seq_len: 400
+  seq_len: 400 # should be same as data.seq_len
   encoder:
     use_checkpoint: false
     checkpoint: ./output/best-kaggle.ckpt
@@ -93,6 +93,7 @@ model:
     activation: lwta
     lwta_competitors: 4
     num_layers: 3
+    stdat_layers: true # STDAT layers
     num_heads: 8
     embeddings:
       embedding_dim: 512
@@ -125,3 +126,6 @@ model:
     hidden_size: 512
     ff_size: 2048
     dropout: 0.2
+    use_checkpoint: false
+    checkpoint: ""
+    freeze: false
