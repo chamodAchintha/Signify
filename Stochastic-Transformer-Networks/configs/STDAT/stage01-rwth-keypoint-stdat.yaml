@@ -5,7 +5,7 @@ data:
   sgn: sign
   txt: text
   gls: gloss
-  train: rwth_dev_keypoints_102.dev
+  train: rwth_train_keypoints_102.train
   dev: rwth_dev_keypoints_102.dev
   test: rwth_dev_keypoints_102.dev
   feature_size: 204
