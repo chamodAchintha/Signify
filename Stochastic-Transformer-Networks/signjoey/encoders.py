@@ -7,7 +7,7 @@ from torch import Tensor
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from signjoey.helpers import freeze_params
-from signjoey.transformer_layers import TransformerEncoderLayer, PositionalEncoding
+from signjoey.transformer_layers import TransformerEncoderLayer, STDATransformerEncoderLayer, PositionalEncoding
 from signjoey.layers import DenseBayesian
 
 # pylint: disable=abstract-method
@@ -168,8 +168,10 @@ class TransformerEncoder(Encoder):
     def __init__(
         self,
         hidden_size: int = 512,
+        seq_len: int = 400,
         ff_size: int = 2048,
         num_layers: int = 8,
+        stdat_layers: bool = False,
         num_heads: int = 4,
         dropout: float = 0.2,
         emb_dropout: float = 0.2,
@@ -214,23 +216,43 @@ class TransformerEncoder(Encoder):
         self.lwta_competitors=lwta_competitors
         
         # build all (num_layers) layers
-        self.layers = nn.ModuleList(
-            [
-                TransformerEncoderLayer(
-                    size=hidden_size,
-                    ff_size=ff_size,
-                    num_heads=num_heads,
-                    dropout=dropout,
-                    
-                    bayesian_attention=bayesian_attention,
-                    bayesian_feedforward=bayesian_feedforward,
-                    ibp=ibp,
-                    activation=activation,
-                    lwta_competitors=lwta_competitors
-                )
-                for _ in range(num_layers)
-            ]
-        )
+        if stdat_layers:
+            self.layers = nn.ModuleList(
+                [
+                    STDATransformerEncoderLayer(
+                        hidden_size=hidden_size,
+                        seq_len =seq_len,
+                        ff_size=ff_size,
+                        num_heads=num_heads,
+                        dropout=dropout,
+                        
+                        bayesian_attention=bayesian_attention,
+                        bayesian_feedforward=bayesian_feedforward,
+                        ibp=ibp,
+                        activation=activation,
+                        lwta_competitors=lwta_competitors
+                    )
+                    for _ in range(num_layers)
+                ]
+            )
+        else:
+            self.layers = nn.ModuleList(
+                [
+                    TransformerEncoderLayer(
+                        size=hidden_size,
+                        ff_size=ff_size,
+                        num_heads=num_heads,
+                        dropout=dropout,
+                        
+                        bayesian_attention=bayesian_attention,
+                        bayesian_feedforward=bayesian_feedforward,
+                        ibp=ibp,
+                        activation=activation,
+                        lwta_competitors=lwta_competitors
+                    )
+                    for _ in range(num_layers)
+                ]
+            )
         
         self.skip_encoder=skip_encoder
         self.layer_norm = nn.LayerNorm(hidden_size, eps=1e-6)

@@ -5,9 +5,9 @@ data:
   sgn: sign
   txt: text
   gls: gloss
-  train: rwth_train_keypoints.train
-  dev: rwth_dev_keypoints.dev
-  test: rwth_dev_keypoints.dev
+  train: rwth_dev_keypoints_102.dev
+  dev: rwth_dev_keypoints_102.dev
+  test: rwth_dev_keypoints_102.dev
   feature_size: 204
   level: word
   txt_lowercase: true
@@ -56,7 +56,7 @@ training:
   eval_translation_beam_alpha: 0
   overwrite: true
   shuffle: true
-  use_cuda: true
+  use_cuda: false
   translation_max_output_length: 30
   keep_last_ckpts: 1
   batch_multiplier: 1

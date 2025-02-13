@@ -79,6 +79,12 @@ def load_data(data_cfg: dict) -> (Dataset, Dataset, Dataset, Vocabulary, Vocabul
     def stack_features(features, something):
         return torch.stack([torch.stack(ft, dim=0) for ft in features], dim=0)
 
+    def pad_features(features, fixed_length=data_cfg.get('seq_len', 400)):
+        padded_features = torch.zeros((fixed_length, pad_feature_size))  # Fixed-length padding
+        length = min(fixed_length, len(features))
+        padded_features[:length] = torch.stack(features[:length])  # Copy features up to max length
+        return padded_features
+
     sequence_field = data.RawField()
     signer_field = data.RawField()
 
@@ -90,7 +96,8 @@ def load_data(data_cfg: dict) -> (Dataset, Dataset, Dataset, Vocabulary, Vocabul
         tokenize=lambda features: features,  # TODO (Cihan): is this necessary?
         batch_first=True,
         include_lengths=True,
-        postprocessing=stack_features,
+        # postprocessing=stack_features,
+        postprocessing=lambda features, _: torch.stack([pad_features(ft) for ft in features]),
         pad_token=torch.zeros((pad_feature_size,)),
     )
 
@@ -229,8 +236,10 @@ def make_data_iter(
             batch_size=batch_size,
             batch_size_fn=batch_size_fn,
             train=True,
-            sort_within_batch=True,
-            sort_key=lambda x: len(x.sgn),
+            # sort_within_batch=True,
+            # sort_key=lambda x: len(x.sgn),
+            sort_within_batch=False,
+            sort_key=None,
             shuffle=shuffle,
         )
     else:
