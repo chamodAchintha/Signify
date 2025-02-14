@@ -69,7 +69,7 @@ training:
   scheduling: plateau
   learning_rate_min: 0.00001
   patience: 6
-  decrease_factor: 0.8
+  decrease_factor: 0.9
   label_smoothing: 0.0
 model:
   gloss_input: false

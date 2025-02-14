@@ -236,10 +236,10 @@ def make_data_iter(
             batch_size=batch_size,
             batch_size_fn=batch_size_fn,
             train=True,
-            # sort_within_batch=True,
-            # sort_key=lambda x: len(x.sgn),
-            sort_within_batch=False,
-            sort_key=None,
+            sort_within_batch=True,
+            sort_key=lambda x: len(x.sgn),
+            # sort_within_batch=False,
+            # sort_key=None,
             shuffle=shuffle,
         )
     else:
