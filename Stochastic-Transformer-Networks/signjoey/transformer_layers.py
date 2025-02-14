@@ -251,11 +251,8 @@ class TransformerEncoderLayer(nn.Module):
         :param mask: input mask
         :return: output tensor
         """
-        print('input to layer',x.shape)
         x_norm = self.layer_norm(x)
-        print('input to attention',x_norm.shape)
         h = self.src_src_att(x_norm, x_norm, x_norm, mask)
-        print('output from attention',h.shape)
     
         h = self.dropout(h) + x
         o = self.feed_forward(h)
@@ -319,7 +316,7 @@ class STDATransformerEncoderLayer(nn.Module):
         ch_attn_out = self.chanel_att(x_norm.transpose(-1, -2), x_norm.transpose(-1, -2), x_norm.transpose(-1, -2), None)
         ch_attn_out = ch_attn_out.transpose(-1, -2)  # Transpose back
 
-        h = self.dropout(attn_out + ch_attn_out) + x
+        h = self.attn_norm(self.dropout(attn_out + ch_attn_out) + x)
      
         o = self.feed_forward(h)
         return o
