@@ -13,6 +13,7 @@ from signjoey.encoders import Encoder
 from signjoey.helpers import freeze_params, subsequent_mask
 from signjoey.transformer_layers import PositionalEncoding, TransformerDecoderLayer
 import torch.nn.functional as F
+from transformers import MBartForConditionalGeneration, MBartConfig
 
 from signjoey.layers import DenseBayesian
 # pylint: disable=abstract-method
@@ -636,3 +637,95 @@ class TransformerDecoder(Decoder):
             len(self.layers),
             self.layers[0].trg_trg_att.num_heads,
         )
+
+
+
+class MBARTDecoder(nn.Module):
+    """
+    mBART Decoder for Sign Language Translation
+    """
+
+    def __init__(
+        self,
+        hidden_size: int = 1024,  # mBART's default hidden size
+        num_layers: int = 6,  # Number of decoder layers to keep
+        emb_dropout: float = 0.1,
+        freeze: bool = False,
+        pretrained_name: str = "facebook/mbart-large-50",
+        vocab_size: int = 50265,  # mBART default vocab size
+        pretrain: bool = True,
+    ):
+        super(MBARTDecoder, self).__init__()
+
+        self.config = MBartConfig.from_pretrained(pretrained_name)
+        self.config.is_decoder = True
+        self.config.add_cross_attention = True  # Enable cross-attention for encoder-decoder mode
+
+        if pretrain:
+            print("Using pretrained mBART model")
+            self.mbart_model = MBartForConditionalGeneration.from_pretrained(pretrained_name, config=self.config)
+        else:
+            print("Using mBART from scratch")
+            self.mbart_model = MBartForConditionalGeneration(self.config)
+
+        # Keep only the decoder part
+        self.decoder = self.mbart_model.model.decoder
+
+        # Ensure the hidden size matches
+        assert self.decoder.config.d_model == hidden_size
+
+        # Reduce decoder layers if needed
+        if num_layers < len(self.decoder.layers):
+            self.decoder.layers = self.decoder.layers[:num_layers]
+
+        if freeze:
+            print("Freezing mBART decoder parameters")
+            for param in self.decoder.parameters():
+                param.requires_grad = False
+
+        # Input processing layers
+        self.input_layer = nn.Linear(hidden_size, hidden_size, bias=False)
+        self.layer_norm = nn.LayerNorm(hidden_size, eps=1e-6)
+        self.emb_dropout = nn.Dropout(p=emb_dropout)
+
+        # Output layer
+        self.output_layer = nn.Linear(hidden_size, vocab_size, bias=False)
+
+    def forward(self, trg_embed, encoder_output, src_mask, trg_mask):
+        """
+        Forward pass for mBART decoder
+
+        :param trg_embed: Target word embeddings
+        :param encoder_output: Encoder hidden states
+        :param src_mask: Source mask (encoder input mask)
+        :param trg_mask: Target mask (decoder input mask)
+        :return: Output logits
+        """
+
+        x = self.emb_dropout(trg_embed)
+        x = self.input_layer(x)
+        x = self.layer_norm(x)
+
+        # Make src mask compatible with mBART
+        src_mask = src_mask[:, None, :, :].float()
+        src_mask = (1.0 - src_mask) * -10000.0  # Convert to attention mask
+
+        # Convert trg_mask to mBART's format
+        trg_mask = trg_mask.squeeze(1)
+        trg_mask = self.mbart_model.get_extended_attention_mask(trg_mask, trg_mask.shape, trg_mask.device)
+
+        # Decode
+        decoder_outputs = self.decoder(
+            input_ids=None,  # We use embeddings, so input_ids are None
+            inputs_embeds=x,  # Pass processed embeddings
+            attention_mask=trg_mask,
+            encoder_hidden_states=encoder_output,
+            encoder_attention_mask=src_mask,
+        )
+
+        logits = self.output_layer(decoder_outputs.last_hidden_state)
+
+        return logits, decoder_outputs.last_hidden_state
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(num_layers={len(self.decoder.layers)}, hidden_size={self.decoder.config.d_model})"
