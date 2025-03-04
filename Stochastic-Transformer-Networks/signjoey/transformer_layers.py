@@ -118,12 +118,6 @@ class MultiHeadedAttention(nn.Module):
 
 
 class SpatialAttention(nn.Module):
-    """
-    Multi-Head Attention module from "Attention is All You Need"
-
-    Implementation modified from OpenNMT-py.
-    https://github.com/OpenNMT/OpenNMT-py
-    """
     kls=0
     def __init__(self, size: int, dropout: float = 0.1,bayesian=False,ibp=False,sizek=None,scale_out=1.0):
         """
@@ -132,7 +126,7 @@ class SpatialAttention(nn.Module):
         :param size: model size (must be divisible by num_heads)
         :param dropout: probability of dropping a unit
         """
-        super(MultiHeadedAttention, self).__init__()
+        super(SpatialAttention, self).__init__()
         linear=nn.Linear
         if sizek==None:
             sizek=size
