@@ -470,7 +470,7 @@ def build_model(
         else:
             encoder = TransformerEncoder(
                 **cfg["encoder"],
-                seq_len=cfg.get('seq_len', 400),
+                # seq_len=cfg.get('seq_len', 400),
                 emb_size=sgn_embed.embedding_dim,
                 emb_dropout=enc_emb_dropout,
                 inference_sample_size=cfg['inference_sample_size']

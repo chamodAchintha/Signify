@@ -96,8 +96,8 @@ def load_data(data_cfg: dict) -> (Dataset, Dataset, Dataset, Vocabulary, Vocabul
         tokenize=lambda features: features,  # TODO (Cihan): is this necessary?
         batch_first=True,
         include_lengths=True,
-        # postprocessing=stack_features,
-        postprocessing=lambda features, _: torch.stack([pad_features(ft) for ft in features]),
+        postprocessing=stack_features,
+        # postprocessing=lambda features, _: torch.stack([pad_features(ft) for ft in features]),
         pad_token=torch.zeros((pad_feature_size,)),
     )
 
@@ -236,10 +236,10 @@ def make_data_iter(
             batch_size=batch_size,
             batch_size_fn=batch_size_fn,
             train=True,
-            # sort_within_batch=True,
-            # sort_key=lambda x: len(x.sgn),
-            sort_within_batch=False,
-            sort_key=None,
+            sort_within_batch=True,
+            sort_key=lambda x: len(x.sgn),
+            # sort_within_batch=False,
+            # sort_key=None,
             shuffle=shuffle,
         )
     else:

@@ -117,6 +117,120 @@ class MultiHeadedAttention(nn.Module):
         return output
 
 
+class SpatialAttention(nn.Module):
+    """
+    Multi-Head Attention module from "Attention is All You Need"
+
+    Implementation modified from OpenNMT-py.
+    https://github.com/OpenNMT/OpenNMT-py
+    """
+    kls=0
+    def __init__(self, size: int, dropout: float = 0.1,bayesian=False,ibp=False,sizek=None,scale_out=1.0):
+        """
+        Create a multi-headed attention layer.
+        :param num_heads: the number of heads
+        :param size: model size (must be divisible by num_heads)
+        :param dropout: probability of dropping a unit
+        """
+        super(MultiHeadedAttention, self).__init__()
+        linear=nn.Linear
+        if sizek==None:
+            sizek=size
+
+        num_heads = 1 # seq_length vary with the batch size
+      
+        assert size % num_heads == 0
+        self.ran=False
+        self.head_size = head_size = size // num_heads
+        self.model_size = size
+        self.num_heads = num_heads
+        print(size)
+        self.k_layer = linear(sizek, num_heads * head_size)
+     
+        self.v_layer = linear(sizek, num_heads * head_size)
+        self.q_layer = linear(size, num_heads * head_size)
+       
+        self.output_layer=nn.Linear(size,size)
+        if bayesian:
+            self.k_layer = DenseBayesian(input_features=size, output_features=num_heads * head_size,
+                             competitors = 1, activation = 'linear',prior_mean=0, prior_scale=1. , ibp = ibp,name='atte_k')
+
+            self.v_layer = DenseBayesian(input_features=size, output_features=num_heads * head_size,
+                             competitors = 1, activation = 'linear',prior_mean=0, prior_scale=1. , ibp = ibp,name='atte_v')
+
+            self.q_layer = DenseBayesian(input_features=size, output_features=num_heads * head_size,
+                             competitors = 1, activation = 'linear',prior_mean=0, prior_scale=1. , ibp = ibp,name='atte_q')
+
+            self.output_layer = DenseBayesian(input_features=size, output_features=size, competitors = 1,activation = 'linear',
+                                              prior_mean=0, prior_scale=1. , ibp = ibp,name='atte_o',scale_out=scale_out)
+
+        self.softmax = nn.Softmax(dim=-1)
+        self.dropout = nn.Dropout(dropout)
+        self.printcounter=0
+
+    def forward(self, k: Tensor, v: Tensor, q: Tensor, mask: Tensor = None):
+        """
+        Computes multi-headed attention.
+
+        :param k: keys   [B, M, D] with M being the sentence length.
+        :param v: values [B, M, D]
+        :param q: query  [B, M, D]
+        :param mask: optional mask [B, 1, M]
+        :return:
+        """
+        batch_size = k.size(0)
+        num_heads = self.num_heads
+
+
+        k = self.k_layer(k)
+        v = self.v_layer(v)
+        q = self.q_layer(q)
+        
+        
+        # reshape q, k, v for our computation to [batch_size, num_heads, ..]
+        k = k.view(batch_size, -1, num_heads, self.head_size).transpose(1, 2)
+        v = v.view(batch_size, -1, num_heads, self.head_size).transpose(1, 2)
+        q = q.view(batch_size, -1, num_heads, self.head_size).transpose(1, 2)
+
+        # transpose to get spatial attention
+        k = k.transpose(-1, -2)
+        v = v.transpose(-1, -2)
+        q = q.transpose(-1, -2)
+
+        # compute scores
+        q = q / math.sqrt(self.head_size)
+        
+        scores = torch.matmul(q, k.transpose(2, 3))
+      
+       
+        # apply the mask (if we have one)
+        # we add a dimension for the heads to it below: [B, 1, 1, M]
+        if mask is not None:
+            scores = scores.masked_fill(~mask.unsqueeze(1), float("-inf"))
+
+        # apply attention dropout and compute context vectors.
+        attention = self.softmax(scores)
+        
+       # MultiHeadedAttention.kls+= torch.mean(torch.mean(-torch.log(attention)))
+        attention = self.dropout(attention)
+        
+        # get context vector (select values with attention) and reshape
+        # back to [B, M, D]
+        context = torch.matmul(attention, v)
+
+        # transpose back to temporal dimension
+        context = context.transpose(-1, -2)
+
+        context = (
+            context.transpose(1, 2)
+            .contiguous()
+            .view(batch_size, -1, num_heads * self.head_size)
+        )
+       # output=context
+        output = self.output_layer(context)
+
+        return output
+
 # pylint: disable=arguments-differ
 class PositionwiseFeedForward(nn.Module):
     """
@@ -265,7 +379,7 @@ class STDATransformerEncoderLayer(nn.Module):
     """
 
     def __init__(
-        self, hidden_size: int = 0, seq_len: int = 0, ff_size: int = 0, num_heads: int = 0, dropout: float = 0.1,
+        self, hidden_size: int = 0, ff_size: int = 0, num_heads: int = 0, dropout: float = 0.1,
         bayesian_attention=False,bayesian_feedforward=False,ibp=False,activation='relu',lwta_competitors=4
     ):
         """
@@ -284,7 +398,7 @@ class STDATransformerEncoderLayer(nn.Module):
             bayesian=bayesian_attention,ibp=ibp,scale_out=(0.125))
         self.src_src_att.ran=True
 
-        self.chanel_att = MultiHeadedAttention(num_heads, seq_len, dropout=dropout,
+        self.chanel_att = SpatialAttention(hidden_size, dropout=dropout,
             bayesian=bayesian_attention,ibp=ibp,scale_out=(0.125))
         self.chanel_att.ran=True
         
@@ -313,8 +427,7 @@ class STDATransformerEncoderLayer(nn.Module):
         attn_out = self.src_src_att(x_norm, x_norm, x_norm, mask)
 
         # Channel attention
-        ch_attn_out = self.chanel_att(x_norm.transpose(-1, -2), x_norm.transpose(-1, -2), x_norm.transpose(-1, -2), None)
-        ch_attn_out = ch_attn_out.transpose(-1, -2)  # Transpose back
+        ch_attn_out = self.chanel_att(x_norm, x_norm, x_norm, None)
 
         h = self.attn_norm(self.dropout(attn_out + ch_attn_out) + x)
      

@@ -168,7 +168,7 @@ class TransformerEncoder(Encoder):
     def __init__(
         self,
         hidden_size: int = 512,
-        seq_len: int = 400,
+        # seq_len: int = 400,
         ff_size: int = 2048,
         num_layers: int = 8,
         stdat_layers: bool = False,
@@ -221,7 +221,7 @@ class TransformerEncoder(Encoder):
                 [
                     STDATransformerEncoderLayer(
                         hidden_size=hidden_size,
-                        seq_len =seq_len,
+                        # seq_len =seq_len,
                         ff_size=ff_size,
                         num_heads=num_heads,
                         dropout=dropout,
