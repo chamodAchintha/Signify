@@ -1,4 +1,4 @@
-name: stage02-912c-attention-102kpt-stdat-mod
+name: stage02-912c-attention-102kpt-stdat-mod-ft-01
 data:
   train_data_path: ./data/sinhala-word-5fps-5sample-912classes-102kpt-train.pkl
   test_data_path: ./data/sinhala-word-5fps-5sample-912classes-102kpt-test.pkl
@@ -9,7 +9,7 @@ data:
 training:
   # load_model: "./SavedModels/example/13400.ckpt"
   random_seed: 44
-  model_dir: "./SavedModels/stage02-912c-attention-102kpt-stdat-mod"
+  model_dir: "./SavedModels/stage02-912c-attention-102kpt-stdat-mod-ft-01"
   optimizer: adam
   learning_rate: 0.001
   batch_size: 32
@@ -27,8 +27,8 @@ training:
 model:
   inference_sample_size: 4
   encoder:
-    use_checkpoint: false
-    checkpoint: ./output/best-kaggle.ckpt
+    use_checkpoint: true
+    checkpoint: ./SavedModels/pretrained/best.ckpt
     skip_encoder: false
     type: transformer
     bayesian_attention: true
