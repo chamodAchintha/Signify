@@ -55,7 +55,7 @@ class SinhalaSignTranslationModel(nn.Module):
             self.logger.info(f'loaded the embed and encoder state from the checkpoint - {checkpoint_path}')
 
         # mbart deocder
-        self.decoder = MBartDecoder(self, cfg, logger)
+        self.decoder = MBartDecoder(cfg, logger)
         
 
     def forward(

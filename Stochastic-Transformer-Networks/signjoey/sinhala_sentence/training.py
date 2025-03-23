@@ -95,7 +95,14 @@ def train_model(cfg_file: str):
         total_loss = 0
         current_lr = optimizer.param_groups[0]['lr']
 
-        for batch_idx, (data, target, mask) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch + 1}"):
+        for batch_idx, (
+            keypoints, 
+            keypoints_mask, 
+            text_input_ids, 
+            text_attention_mask, 
+            label
+        ) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch + 1}"):
+            
             mask = mask.unsqueeze(1).expand(-1, 1, -1)
             data, target, mask = data.to(device), target.to(device), mask.to(device)
 
