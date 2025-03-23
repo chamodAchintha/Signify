@@ -1,4 +1,5 @@
 import torch.nn as nn
+from torch import Tensor
 import os
 from signjoey.helpers import load_checkpoint
 from signjoey.embeddings import SpatialEmbeddings
@@ -57,29 +58,29 @@ class SinhalaSignTranslationModel(nn.Module):
         self.decoder = MBartDecoder(self, cfg, logger)
         
 
-    def forward(self, x, mask):
+    def forward(
+        self, 
+        sgn: Tensor, 
+        sgn_mask: Tensor,
+        text_input_ids: Tensor,
+        text_attention_mask: Tensor,
+        label: Tensor
+    ):
         """
-        Forward pass through the model.
-        Parameters:
-        - x: Input tensor to the model
-        Returns:
-        - Output tensor after passing through encoder and classification head
+        Forward pass for Sinhala Sign Language translation.
         """
-        x = self.sgn_embed(x, mask)
-        x = self.encoder(x, mask)[0]
-        x = self.decoder(
-            encoder_attention_mask: Optional[torch.Tensor] = None,
-            decoder_input_ids: Optional[torch.LongTensor] = None,
-            decoder_attention_mask: Optional[torch.LongTensor] = None,
-            decoder_head_mask: Optional[torch.Tensor] = None,
-            cross_attn_head_mask: Optional[torch.Tensor] = None,
-            encoder_outputs: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
-            past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
-            decoder_inputs_embeds: Optional[torch.FloatTensor] = None,
-            labels: Optional[torch.LongTensor] = None,
-            use_cache: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
+        # Compute sign embeddings
+        sgn_embedded = self.sgn_embed(sgn, sgn_mask)
+        # Encode sign language representations
+        encoder_output = self.encoder(sgn_embedded, sgn_mask)
+
+        # Pass encoder output to decoder
+        decoder_output = self.decoder(
+            encoder_attention_mask=sgn_mask,
+            encoder_outputs=(encoder_output,),
+            decoder_input_ids=text_input_ids,
+            decoder_attention_mask=text_attention_mask,
+            labels=label
         )
-        return x
+        return decoder_output
 

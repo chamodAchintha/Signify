@@ -9,7 +9,7 @@ from transformers.modeling_outputs import Seq2SeqModelOutput, Seq2SeqLMOutput, B
 from typing import List, Optional, Tuple, Union, Any
 
 # Load updated mBART model and tokenizer
-MODEL_NAME = "facebook/mbart-large-50-many-to-many-mmt"
+MODEL_NAME = "facebook/mbart-large-50"
 MODEL = MBartForConditionalGeneration.from_pretrained(MODEL_NAME)
 
 
@@ -86,8 +86,8 @@ class MBartDecoder(nn.Module):
                 else: 
                     print("The `use_cache` argument is changed to `False` since `labels` is provided.")
             use_cache = False
-            if decoder_input_ids is None and decoder_inputs_embeds is None:
-                decoder_input_ids = shift_tokens_right(labels, MODEL.config.pad_token_id)
+            # if decoder_input_ids is None and decoder_inputs_embeds is None:
+            #     decoder_input_ids = shift_tokens_right(labels, MODEL.config.pad_token_id)
 
         output_attentions = output_attentions if output_attentions is not None else self.mbart_config.output_attentions
         output_hidden_states = (
