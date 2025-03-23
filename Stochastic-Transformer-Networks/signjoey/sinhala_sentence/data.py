@@ -75,7 +75,7 @@ class SinhalaSignDataset(Dataset):
             "keypoints": keypoints.float(),  # Convert to float tensor
             "keypoints_mask": keypoints_mask,  # Encoder attention mask
             "text_input_ids": labels.input_ids,  # Target tokens
-            "text_attention_mask": labels.attention_mask,
+            "text_attention_mask": labels.attention_mask[0],
             "label": create_target_token_ids(labels.input_ids, self.tokenizer.pad_token_id)
         }
 
