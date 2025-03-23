@@ -5,10 +5,10 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from signjoey.helpers import load_config, make_logger, set_seed
-from signjoey.sinhala_sentense.translation_model import SinhalaSignTranslationModel
+from signjoey.sinhala_sentence.translation_model import SinhalaSignTranslationModel
 from signjoey.builders import build_optimizer
 from signjoey.early_stopping import EarlyStopping
-from signjoey.sinhala_sentense.data import load_training_data
+from signjoey.sinhala_sentence.data import load_training_data
 
 import pandas as pd
 

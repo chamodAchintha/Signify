@@ -5,7 +5,7 @@ from signjoey.helpers import load_checkpoint
 from signjoey.embeddings import SpatialEmbeddings
 from signjoey.encoders import TransformerEncoder
 from signjoey.classification_head import MLPHead, ConvHead, RNNHead, AttentionHead
-from signjoey.sinhala_sentense.mbart_decoder import MBartDecoder
+from signjoey.sinhala_sentence.mbart_decoder import MBartDecoder
 
 class SinhalaSignTranslationModel(nn.Module):
     def __init__(self, cfg, logger):
