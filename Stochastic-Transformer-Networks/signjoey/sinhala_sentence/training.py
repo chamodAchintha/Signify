@@ -33,7 +33,7 @@ def train_model(cfg_file: str):
     train_loader, val_loader = load_training_data(cfg, logger)
 
     model = SinhalaSignTranslationModel(cfg, logger)
-    logger.info(f'classification model created:\n{model}')
+    logger.info(f'translation model created:\n{model}')
 
     use_cuda = cfg["training"].get("use_cuda", False)
     device = torch.device("cuda" if (torch.cuda.is_available() and use_cuda) else "cpu")
@@ -65,8 +65,6 @@ def train_model(cfg_file: str):
         parameters=filter(lambda p: p.requires_grad, model.parameters())
     )
 
-    criterion = torch.nn.CrossEntropyLoss()
-
     # learning rate scheduling
     scheduler = lr_scheduler.ReduceLROnPlateau(
         optimizer=optimizer,
@@ -95,20 +93,22 @@ def train_model(cfg_file: str):
         total_loss = 0
         current_lr = optimizer.param_groups[0]['lr']
 
-        for batch_idx, (
-            keypoints, 
-            keypoints_mask, 
-            text_input_ids, 
-            text_attention_mask, 
-            label
-        ) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch + 1}"):
-            
-            mask = mask.unsqueeze(1).expand(-1, 1, -1)
-            data, target, mask = data.to(device), target.to(device), mask.to(device)
+        for batch in tqdm(train_loader, total=len(train_loader), desc=f"Epoch {epoch + 1}"):
+            keypoints = batch['keypoints'].to(device)
+            keypoints_mask = batch['keypoints_mask'].to(device)
+            text_input_ids = batch['text_input_ids'].to(device)
+            text_attention_mask = batch['text_attention_mask'].to(device)
+            label = batch['label'].to(device)
 
             optimizer.zero_grad()
-            output = model(data, mask)
-            loss = criterion(output, target)
+            output = model(
+                sgn = keypoints,
+                sgn_mask = keypoints_mask,
+                text_input_ids = text_input_ids,
+                text_attention_mask = text_attention_mask,
+                label = label
+            )
+            loss = output.loss
             loss.backward() 
 
             optimizer.step() 
@@ -116,9 +116,11 @@ def train_model(cfg_file: str):
             total_loss += loss.item()
 
         avg_loss = total_loss / len(train_loader)
-        avg_val_loss, val_accuracy, val_f1, all_preds, all_targets = validate_model(model, val_loader, criterion, device)
+        # avg_val_loss, val_accuracy, val_f1, all_preds, all_targets = validate_model(model, val_loader, criterion, device)
 
-        logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr:.6f}')
+        # validation 
+
+        logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}')
         with open(validation_file, "a", encoding="utf-8") as opened_file:
             opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr:.6f}\n')
 

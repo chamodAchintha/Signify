@@ -70,17 +70,46 @@ class SinhalaSignTranslationModel(nn.Module):
         Forward pass for Sinhala Sign Language translation.
         """
         # Compute sign embeddings
-        sgn_embedded = self.sgn_embed(sgn, sgn_mask)
+        sgn_embedded = self.sgn_embed(
+            sgn, 
+            sgn_mask.unsqueeze(1).expand(-1, 1, -1).bool()
+        )
         # Encode sign language representations
-        encoder_output = self.encoder(sgn_embedded, sgn_mask)
+        encoder_output = self.encoder(
+            sgn_embedded, 
+            sgn_mask.unsqueeze(1).expand(-1, 1, -1).bool()
+        )
 
         # Pass encoder output to decoder
         decoder_output = self.decoder(
             encoder_attention_mask=sgn_mask,
-            encoder_outputs=(encoder_output,),
+            encoder_outputs=encoder_output,
             decoder_input_ids=text_input_ids,
             decoder_attention_mask=text_attention_mask,
             labels=label
         )
         return decoder_output
+
+    def encode(self, sgn: Tensor, sgn_mask: Tensor,):
+        # Compute sign embeddings
+        sgn_embedded = self.sgn_embed(
+            sgn, 
+            sgn_mask.unsqueeze(1).expand(-1, 1, -1).bool()
+        )
+        # Encode sign language representations
+        return self.encoder(
+            sgn_embedded, 
+            sgn_mask.unsqueeze(1).expand(-1, 1, -1).bool()
+        )
+    
+    def decode(self, encoder_output , sgn_mask: Tensor, text_input_ids: Tensor, text_attention_mask: Tensor, label: Tensor):
+        return self.decoder(
+            encoder_attention_mask=sgn_mask,
+            encoder_outputs=encoder_output,
+            decoder_input_ids=text_input_ids,
+            decoder_attention_mask=text_attention_mask,
+            labels=label
+        )
+        
+
 
