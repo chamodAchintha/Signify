@@ -81,6 +81,7 @@ def train_model(cfg_file: str):
     num_epochs = train_config["epochs"]
     best_val_loss = float('inf')
 
+    logger.info(f"Number of trainable parameters = {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
     logger.info("Training Starts...")
     for epoch in range(num_epochs):
         model.train()

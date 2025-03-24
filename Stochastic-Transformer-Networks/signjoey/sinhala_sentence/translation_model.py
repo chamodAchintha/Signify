@@ -19,7 +19,7 @@ class SinhalaSignTranslationModel(nn.Module):
         super(SinhalaSignTranslationModel, self).__init__()
 
         self.logger = logger
-        self.logger.info('creating the classification model...')
+        self.logger.info('creating the Translation model...')
 
         # embeddings
         self.sgn_embed: SpatialEmbeddings = SpatialEmbeddings(

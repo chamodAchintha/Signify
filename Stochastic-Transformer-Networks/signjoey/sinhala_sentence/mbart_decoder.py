@@ -74,7 +74,7 @@ class MBartDecoder(nn.Module):
             for name, param in self.decoder.layers[i].named_parameters():
                 if name.split('.')[0] in train_layers:
                     param.requires_grad = True
-                    logger.info(f"Decoder layer - {i} - {name.split('.')[0]} is set to train")
+                    logger.info(f"Decoder layer - {i} - {name} is set to train")
 
 
     def forward(
