@@ -30,7 +30,7 @@ def train_model(cfg_file: str):
     # set the random seed
     set_seed(seed=cfg["training"].get("random_seed", 42))
 
-    train_loader, val_loader = load_training_data(cfg, logger)
+    train_loader, val_loader, tokenizer = load_training_data(cfg, logger)
 
     model = SinhalaSignTranslationModel(cfg, logger)
     logger.info(f'translation model created:\n{model}')
@@ -65,6 +65,8 @@ def train_model(cfg_file: str):
         parameters=filter(lambda p: p.requires_grad, model.parameters())
     )
 
+    criterion = torch.nn.CrossEntropyLoss()
+
     # learning rate scheduling
     scheduler = lr_scheduler.ReduceLROnPlateau(
         optimizer=optimizer,
@@ -76,16 +78,8 @@ def train_model(cfg_file: str):
         min_lr=train_config.get("learning_rate_min", 1e-6)
     )
 
-    # # Early stopping
-    # early_stopping = EarlyStopping(
-    #     patience=train_config.get("es_patience", 10),
-    #     min_delta=train_config.get("es_min_delta", 0.0)
-    # )
-
-    # shuffle = train_config.get("shuffle", True)
     num_epochs = train_config["epochs"]
     best_val_loss = float('inf')
-    # batch_size = train_config["batch_size"]
 
     logger.info("Training Starts...")
     for epoch in range(num_epochs):
@@ -101,14 +95,15 @@ def train_model(cfg_file: str):
             label = batch['label'].to(device)
 
             optimizer.zero_grad()
-            output = model(
+            logits, _ = model(
                 sgn = keypoints,
                 sgn_mask = keypoints_mask,
                 text_input_ids = text_input_ids,
                 text_attention_mask = text_attention_mask,
                 label = label
             )
-            loss = output.loss
+            loss = None
+            loss = criterion(logits.view(-1, model.decoder_config.vocab_size), label.view(-1))
             loss.backward() 
 
             optimizer.step() 
@@ -116,9 +111,9 @@ def train_model(cfg_file: str):
             total_loss += loss.item()
 
         avg_loss = total_loss / len(train_loader)
-        # avg_val_loss, val_accuracy, val_f1, all_preds, all_targets = validate_model(model, val_loader, criterion, device)
 
-        # validation 
+        # validation
+        # avg_val_loss, val_accuracy, val_f1, all_preds, all_targets = validate_model(model, val_loader, criterion, device)
 
         logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}')
         with open(validation_file, "a", encoding="utf-8") as opened_file:
@@ -172,9 +167,13 @@ def validate_model(model, val_loader, criterion, device):
     all_targets = []
 
     with torch.no_grad():
-        for batch_idx, (data, target, mask) in tqdm(enumerate(val_loader), total=len(val_loader), desc=f"Validation"):
-            mask = mask.unsqueeze(1).expand(-1, 1, -1)
-            data, target, mask = data.to(device), target.to(device), mask.to(device)
+        for batch in tqdm(val_loader, total=len(val_loader)):
+            keypoints = batch['keypoints'].to(device)
+            keypoints_mask = batch['keypoints_mask'].to(device)
+            text_input_ids = batch['text_input_ids'].to(device)
+            text_attention_mask = batch['text_attention_mask'].to(device)
+            label = batch['label'].to(device)
+
             # print('data shape:', data.shape)
             output = model(data, mask)
             # print("Validatation output shape:", output.shape)

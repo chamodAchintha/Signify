@@ -3,8 +3,6 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import MBart50TokenizerFast
 import gzip, pickle
 
-TOKENIZER = MBart50TokenizerFast.from_pretrained("facebook/mbart-large-50", tgt_lang="si_LK")
-
 def load_dataset_file(filename):
     with gzip.open(filename, "rb") as f:
         loaded_object = pickle.load(f)
@@ -80,13 +78,16 @@ class SinhalaSignDataset(Dataset):
         }
 
 def load_training_data(cfg, logger):
+
+    tokenizer = MBart50TokenizerFast.from_pretrained("facebook/mbart-large-50", tgt_lang=cfg['data'].get('tgt_language', "si_LK"))
+
     train_data_path = cfg['data']['train_data_path']
     dev_data_path = cfg['data']['dev_data_path']
     decoder_max_len = cfg['data']['max_sent_length']
     batch_size = cfg['data']['batch_size']
 
-    train_dataset = SinhalaSignDataset(train_data_path, TOKENIZER, decoder_max_len)
-    dev_dataset = SinhalaSignDataset(dev_data_path, TOKENIZER, decoder_max_len)
+    train_dataset = SinhalaSignDataset(train_data_path, tokenizer, decoder_max_len)
+    dev_dataset = SinhalaSignDataset(dev_data_path, tokenizer, decoder_max_len)
 
     logger.info(f"train dataset size : {len(train_dataset)}")
     logger.info(f"dev dataset size : {len(dev_dataset)}")
@@ -95,19 +96,22 @@ def load_training_data(cfg, logger):
     train_loader = DataLoader(train_dataset, batch_size, shuffle=True)
     dev_loader = DataLoader(dev_dataset, batch_size, shuffle=False)
 
-    return train_loader, dev_loader
+    return train_loader, dev_loader, tokenizer
 
 
 def load_test_data(cfg, logger):
+
+    tokenizer = MBart50TokenizerFast.from_pretrained("facebook/mbart-large-50", tgt_lang=cfg['data'].get('tgt_language', "si_LK"))
+
     test_data_path = cfg['data']['test_data_path']
     decoder_max_len = cfg['data']['max_sent_length']
     batch_size = cfg['data']['batch_size']
 
-    test_dataset = SinhalaSignDataset(test_data_path, TOKENIZER, decoder_max_len)
+    test_dataset = SinhalaSignDataset(test_data_path, tokenizer, decoder_max_len)
 
     logger.info(f"test dataset size : {len(test_dataset)}")
     logger.info(f"batch size: {batch_size}")
 
     test_loader = DataLoader(test_dataset, batch_size, shuffle=True)
 
-    return test_loader
+    return test_loader, tokenizer

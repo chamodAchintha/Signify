@@ -57,6 +57,7 @@ class SinhalaSignTranslationModel(nn.Module):
         # mbart deocder
         self.decoder = MBartDecoder(cfg, logger)
         
+        self.decoder_config = self.decoder.mbart_config
 
     def forward(
         self, 
@@ -81,14 +82,14 @@ class SinhalaSignTranslationModel(nn.Module):
         )
 
         # Pass encoder output to decoder
-        decoder_output = self.decoder(
+        logits, decoder_last_hidden_state = self.decoder(
             encoder_attention_mask=sgn_mask,
             encoder_outputs=encoder_output,
             decoder_input_ids=text_input_ids,
             decoder_attention_mask=text_attention_mask,
             labels=label
         )
-        return decoder_output
+        return logits, decoder_last_hidden_state
 
     def encode(self, sgn: Tensor, sgn_mask: Tensor,):
         # Compute sign embeddings

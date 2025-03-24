@@ -91,7 +91,7 @@ def build_optimizer(config: dict, parameters) -> Optimizer:
             amsgrad=amsgrad,
         )
     elif optimizer_name == "adamw":
-        return torch.optim.Adam(
+        return torch.optim.AdamW(
             params=parameters,
             lr=learning_rate,
             betas=betas,

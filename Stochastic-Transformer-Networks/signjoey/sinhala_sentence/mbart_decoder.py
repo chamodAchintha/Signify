@@ -4,6 +4,7 @@ from torch.nn import CrossEntropyLoss
 import torch.optim as optim
 from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
 from transformers.modeling_outputs import Seq2SeqModelOutput, Seq2SeqLMOutput, BaseModelOutput
+from signjoey.helpers import freeze_params
 
 
 from typing import List, Optional, Tuple, Union, Any
@@ -56,9 +57,71 @@ class MBartDecoder(nn.Module):
         self.vocab_size= 250054
 
         self.logger = logger
+        self.inference_sample_size=cfg['model']['inference_sample_size']
+
+        if cfg['model']['decoder'].get('freeze', True):
+            freeze_params(self)
+            logger.info('Freezed all decoder layers')
+
+        num_layers_to_train = cfg['model']['decoder'].get('num_layers_to_train', 12)
+        if num_layers_to_train > self.mbart_config.decoder_layers:
+            logger.warn(f"number of decoder layers to train ({num_layers_to_train}) is greater than the number of layers. Train all layers ({self.mbart_config.decoder_layers})")
+            num_layers_to_train = self.mbart_config.decoder_layers
+
+        train_layers = cfg['model']['decoder'].get('train_layers', [])
+
+        for i in range(num_layers_to_train):
+            for name, param in self.decoder.layers[i].named_parameters():
+                if name.split('.')[0] in train_layers:
+                    param.requires_grad = True
+                    logger.info(f"Decoder layer - {i} - {name.split('.')[0]} is set to train")
 
 
     def forward(
+        self,
+        encoder_attention_mask: Optional[torch.Tensor] = None,
+        decoder_input_ids: Optional[torch.LongTensor] = None,
+        decoder_attention_mask: Optional[torch.LongTensor] = None,
+        encoder_outputs: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
+        labels: Optional[torch.LongTensor] = None,
+    ):
+        if self.training:
+            return self.forward_(
+                encoder_attention_mask=encoder_attention_mask,
+                encoder_outputs=encoder_outputs,
+                decoder_input_ids=decoder_input_ids,
+                decoder_attention_mask=decoder_attention_mask,
+                labels=labels
+            )
+        else:
+            logits = None
+            output = None
+            encoder_s = encoder_outputs[0].shape[-1]
+            inference_sample_size= max(self.inference_sample_size, encoder_s)
+
+            for i in range(inference_sample_size):
+                logits_, output_ = self.forward_(
+                    encoder_attention_mask=encoder_attention_mask,
+                    encoder_outputs=(encoder_outputs[0][...,i%encoder_s],),
+                    decoder_input_ids=decoder_input_ids,
+                    decoder_attention_mask=decoder_attention_mask,
+                    labels=labels
+                )
+                if logits is None:
+                    logits = logits_
+                    output = output_
+                else:
+                    logits += logits_
+                    output += output_
+
+                
+            output=output*1.0/inference_sample_size
+            logits=logits*1.0/inference_sample_size
+
+            return logits, output
+
+
+    def forward_(
         self,
         encoder_attention_mask: Optional[torch.Tensor] = None,
         decoder_input_ids: Optional[torch.LongTensor] = None,
@@ -133,23 +196,25 @@ class MBartDecoder(nn.Module):
 
         lm_logits = self.lm_head(outputs[0]) + self.final_logits_bias
 
-        masked_lm_loss = None
-        if labels is not None:
-            loss_fct = CrossEntropyLoss()
-            masked_lm_loss = loss_fct(lm_logits.view(-1, self.mbart_config.vocab_size), labels.view(-1))
+        # masked_lm_loss = None
+        # if labels is not None:
+        #     loss_fct = CrossEntropyLoss()
+        #     masked_lm_loss = loss_fct(lm_logits.view(-1, self.mbart_config.vocab_size), labels.view(-1))
 
-        if not return_dict:
-            output = (lm_logits,) + outputs[1:]
-            return ((masked_lm_loss,) + output) if masked_lm_loss is not None else output
+        # if not return_dict:
+        #     output = (lm_logits,) + outputs[1:]
+        #     return ((masked_lm_loss,) + output) if masked_lm_loss is not None else output
+        
+        return lm_logits, outputs.last_hidden_state
 
-        return Seq2SeqLMOutput(
-            loss=masked_lm_loss,
-            logits=lm_logits,
-            past_key_values=outputs.past_key_values,
-            decoder_hidden_states=outputs.decoder_hidden_states,
-            decoder_attentions=outputs.decoder_attentions,
-            cross_attentions=outputs.cross_attentions,
-            encoder_last_hidden_state=outputs.encoder_last_hidden_state,
-            encoder_hidden_states=outputs.encoder_hidden_states,
-            encoder_attentions=outputs.encoder_attentions,
-        )
+        # return Seq2SeqLMOutput(
+        #     loss=masked_lm_loss,
+        #     logits=lm_logits,
+        #     past_key_values=outputs.past_key_values,
+        #     decoder_hidden_states=outputs.decoder_hidden_states,
+        #     decoder_attentions=outputs.decoder_attentions,
+        #     cross_attentions=outputs.cross_attentions,
+        #     encoder_last_hidden_state=outputs.encoder_last_hidden_state,
+        #     encoder_hidden_states=outputs.encoder_hidden_states,
+        #     encoder_attentions=outputs.encoder_attentions,
+        # )
