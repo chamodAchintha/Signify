@@ -194,7 +194,7 @@ class MBartDecoder(nn.Module):
                 encoder_attentions=encoder_outputs.attentions,
             )
 
-        lm_logits = self.lm_head(outputs[0]) + self.final_logits_bias
+        lm_logits = self.lm_head(outputs[0]) + self.final_logits_bias.to(outputs[0].device) # add to device separately since final_logits_bias seems not adding to device
 
         # masked_lm_loss = None
         # if labels is not None:

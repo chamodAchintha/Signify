@@ -10,9 +10,9 @@ from signjoey.builders import build_optimizer
 from signjoey.early_stopping import EarlyStopping
 from signjoey.sinhala_sentence.data import load_training_data
 from signjoey.sinhala_sentence.search import greedy_decode
-from signjoey.metrics import bleu
+from signjoey.metrics import bleu, rouge
 
-import pandas as pd
+import random
 
 def train_translation_model(cfg_file: str):
 
@@ -116,10 +116,23 @@ def train_translation_model(cfg_file: str):
         avg_train_loss = total_loss / len(train_loader)
 
         # validation
-        avg_val_loss, bleu = validate_model(model, val_loader, criterion, tokenizer, device)
+        tgt_lang_code = cfg['data']['tgt_language']
+        max_output_length = cfg['data']['max_sent_length']
+        avg_val_loss, bleu_scores, rouge_score, samples = validate_model(
+            model=model, 
+            val_loader=val_loader, 
+            criterion=criterion, 
+            tokenizer=tokenizer, 
+            tgt_lang_code=tgt_lang_code, 
+            device=device, 
+            max_output_length=max_output_length
+        )
 
         logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_train_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}')
-        logger.info(f">> BLEU-1: {bleu['bleu1']:.4f} BLEU-2: {bleu['bleu2']:.4f} BLEU-3: {bleu['bleu3']:.4f} BLEU-4: {bleu['bleu4']:.4f}")
+        logger.info(f">> BLEU-1: {bleu_scores['bleu1']:.4f} BLEU-2: {bleu_scores['bleu2']:.4f} BLEU-3: {bleu_scores['bleu3']:.4f} BLEU-4: {bleu_scores['bleu4']:.4f} ROUGE: {rouge_score:.4f}")
+        logger.info(">> Sample Sentences:")
+        for sample in samples:
+            logger.info(f"Reference: {sample[0]} - Hypothesis: {sample[1]}")
 
         with open(validation_file, "a", encoding="utf-8") as opened_file:
             opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_train_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}\n')
@@ -147,7 +160,7 @@ def train_translation_model(cfg_file: str):
         #     torch.cuda.empty_cache()
     logger.info('Training Completed.')
 
-def validate_model(model, val_loader, criterion, tokenizer, device, max_output_length=30):
+def validate_model(model, val_loader, criterion, tokenizer, tgt_lang_code='si_LK', device = 'cpu', max_output_length=30, sample_count=5):
     model.eval()
     total_val_loss = 0
     hypotheses = []
@@ -176,7 +189,7 @@ def validate_model(model, val_loader, criterion, tokenizer, device, max_output_l
             encoder_output = model.encode(keypoints, keypoints_mask)[0]
             decoded_sequences = greedy_decode(
                 src_mask=keypoints_mask,
-                bos_index=tokenizer.lang_code_to_id.get('si_LK'),
+                bos_index=tokenizer.lang_code_to_id.get(tgt_lang_code),
                 eos_index=tokenizer.eos_token_id,
                 max_output_length=max_output_length,
                 decoder=model.decoder,
@@ -190,6 +203,11 @@ def validate_model(model, val_loader, criterion, tokenizer, device, max_output_l
             hypotheses.extend(hyp_text)
         
     avg_val_loss = total_val_loss / len(val_loader)
-    bleu = bleu(references, hypotheses)
+    bleu_scores = bleu(references, hypotheses)
+    rouge_score = rouge(references, hypotheses)
 
-    return avg_val_loss, bleu
+    # Select random samples
+    sample_indices = random.sample(range(len(references)), min(sample_count, len(references)))
+    samples = [(references[i], hypotheses[i]) for i in sample_indices]
+
+    return avg_val_loss, bleu_scores, rouge_score, samples
