@@ -111,14 +111,15 @@ def train_model(cfg_file: str):
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             total_loss += loss.item()
 
-        avg_loss = total_loss / len(train_loader)
+        avg_train_loss = total_loss / len(train_loader)
 
         # validation
-        # avg_val_loss, val_accuracy, val_f1, all_preds, all_targets = validate_model(model, val_loader, criterion, device)
+        avg_val_loss = validate_model(model, val_loader, criterion, device)
 
-        logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}')
+        logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_train_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}')
+
         with open(validation_file, "a", encoding="utf-8") as opened_file:
-            opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_loss:.4f} Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f} F1: {val_f1:.4f} lr: {current_lr:.6f}\n')
+            opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_train_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}\n')
 
         # save checkpoint
         if avg_val_loss < best_val_loss:
@@ -129,32 +130,15 @@ def train_model(cfg_file: str):
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_val_loss': best_val_loss,
-                'Accuracy': val_accuracy,
-                'F1': val_f1,
                 'learning_rate': optimizer.param_groups[0]['lr'],
-                'label_encoder': label_encoder
             }
             torch.save(checkpoint, os.path.join(train_config["model_dir"], 'best_model.pth'))
             logger.info(f"New best model saved with validation loss {best_val_loss:.4f}")
 
-            df = pd.DataFrame({
-                'True_Class': all_targets,
-                'Pred_Class': all_preds,
-                'True_Label': label_encoder.inverse_transform(all_targets),
-                'Pred_Label': label_encoder.inverse_transform(all_preds)
-            })
-            # Save to CSV
-            df.to_csv(f"{train_config['model_dir']}/{cfg['name']}_validation_results.csv", index=False)
-
-
         # Step the scheduler
         scheduler.step(avg_val_loss)
 
-        # Check for early stopping
-        # early_stopping(avg_val_loss)
-        # if early_stopping.early_stop:
-        #     print(f"Early stopping after {epoch + 1} epochs. Best Validation Loss: {early_stopping.best_loss:.4f}")
-        #     break
+
 
         # if device.type == 'cuda':
         #     torch.cuda.empty_cache()
@@ -163,9 +147,6 @@ def train_model(cfg_file: str):
 def validate_model(model, val_loader, criterion, device):
     model.eval()
     total_val_loss = 0
-    # correct = 0
-    all_preds = []
-    all_targets = []
 
     with torch.no_grad():
         for batch in tqdm(val_loader, total=len(val_loader)):
@@ -175,23 +156,18 @@ def validate_model(model, val_loader, criterion, device):
             text_attention_mask = batch['text_attention_mask'].to(device)
             label = batch['label'].to(device)
 
-            # print('data shape:', data.shape)
-            output = model(data, mask)
-            # print("Validatation output shape:", output.shape)
-            val_loss = criterion(output, target)
+            logits, _ = model(
+                sgn = keypoints,
+                sgn_mask = keypoints_mask,
+                text_input_ids = text_input_ids,
+                text_attention_mask = text_attention_mask,
+                label = label
+            )
+
+            val_loss = criterion(logits.view(-1, model.decoder_config.vocab_size), label.view(-1))
             total_val_loss += val_loss.item()
 
-            # Calculate accuracy
-            pred = output.argmax(dim=1, keepdim=True)
-            # correct += pred.eq(target.view_as(pred)).sum().item()
 
-            # Collect predictions and targets for F1 score
-            all_preds.extend(pred.cpu().numpy().flatten())
-            all_targets.extend(target.cpu().numpy())
-
-    # print(all_preds)
-    # print(all_targets)
     avg_val_loss = total_val_loss / len(val_loader)
-    accuracy = accuracy_score(all_targets, all_preds)
-    f1 = f1_score(all_targets, all_preds, average='weighted')
-    return avg_val_loss, accuracy, f1, all_preds, all_targets
+
+    return avg_val_loss

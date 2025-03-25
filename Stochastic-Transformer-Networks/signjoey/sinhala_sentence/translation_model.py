@@ -91,6 +91,7 @@ class SinhalaSignTranslationModel(nn.Module):
         )
         return logits, decoder_last_hidden_state
 
+
     def encode(self, sgn: Tensor, sgn_mask: Tensor,):
         # Compute sign embeddings
         sgn_embedded = self.sgn_embed(
