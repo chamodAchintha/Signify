@@ -60,7 +60,7 @@ def greedy_decode(
             if torch.all(next_word == eos_index):
                 break
 
-    return ys.detach().cpu().numpy()
+    return ys.squeeze(1).detach().cpu().numpy()
 
 
 def beam_search(

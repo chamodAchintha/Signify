@@ -167,7 +167,7 @@ def validate_model(model, val_loader, criterion, tokenizer, tgt_lang_code='si_LK
     references = []
 
     with torch.no_grad():
-        for batch in tqdm(val_loader, total=len(val_loader)):
+        for batch in tqdm(val_loader, total=len(val_loader), desc=f"Validation: "):
             keypoints = batch['keypoints'].to(device)
             keypoints_mask = batch['keypoints_mask'].to(device)
             text_input_ids = batch['text_input_ids'].to(device)
