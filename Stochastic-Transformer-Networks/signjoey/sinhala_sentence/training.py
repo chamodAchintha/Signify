@@ -119,7 +119,7 @@ def train_translation_model(cfg_file: str):
         avg_val_loss, bleu = validate_model(model, val_loader, criterion, tokenizer, device)
 
         logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_train_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}')
-        logger.info(f'>> BLEU-1: {bleu['bleu1']:.4f} BLEU-2: {bleu['bleu2']:.4f} BLEU-3: {bleu['bleu3']:.4f} BLEU-4: {bleu['bleu4']:.4f}')
+        logger.info(f">> BLEU-1: {bleu['bleu1']:.4f} BLEU-2: {bleu['bleu2']:.4f} BLEU-3: {bleu['bleu3']:.4f} BLEU-4: {bleu['bleu4']:.4f}")
 
         with open(validation_file, "a", encoding="utf-8") as opened_file:
             opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_train_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}\n')
