@@ -6,6 +6,7 @@ from signjoey.training import train
 from signjoey.prediction import test
 from signjoey.classification_train import train_model 
 from signjoey.classification_test import test_model
+from signjoey.sinhala_sentence.training import train_translation_model  
 
 sys.path.append("/vol/research/extol/personal/cihan/code/SignJoey")
 
@@ -13,7 +14,7 @@ sys.path.append("/vol/research/extol/personal/cihan/code/SignJoey")
 def main():
     ap = argparse.ArgumentParser("Joey NMT")
 
-    ap.add_argument("mode", choices=["train", "test", "train_classifier", 'test_classifier'], help="train a model or test")
+    ap.add_argument("mode", choices=["train", "test", "train_classifier", 'test_classifier', 'train_translator'], help="train a model or test")
 
     ap.add_argument("config_path", type=str, help="path to YAML config file")
 
@@ -35,6 +36,8 @@ def main():
         train_model(cfg_file=args.config_path)
     elif args.mode == 'test_classifier':
         test_model(cfg_file=args.config_path)
+    elif args.mode == 'train_translator':
+        train_translation_model(cfg_file=args.config_path)
     else:
         raise ValueError("Unknown mode")
 

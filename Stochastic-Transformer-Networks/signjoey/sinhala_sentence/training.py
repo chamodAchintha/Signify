@@ -9,10 +9,12 @@ from signjoey.sinhala_sentence.translation_model import SinhalaSignTranslationMo
 from signjoey.builders import build_optimizer
 from signjoey.early_stopping import EarlyStopping
 from signjoey.sinhala_sentence.data import load_training_data
+from signjoey.sinhala_sentence.search import greedy_decode
+from signjoey.metrics import bleu
 
 import pandas as pd
 
-def train_model(cfg_file: str):
+def train_translation_model(cfg_file: str):
 
     cfg = load_config(cfg_file)
     train_config = cfg['training']
@@ -114,9 +116,10 @@ def train_model(cfg_file: str):
         avg_train_loss = total_loss / len(train_loader)
 
         # validation
-        avg_val_loss = validate_model(model, val_loader, criterion, device)
+        avg_val_loss, bleu = validate_model(model, val_loader, criterion, tokenizer, device)
 
         logger.info(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_train_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}')
+        logger.info(f'>> BLEU-1: {bleu['bleu1']:.4f} BLEU-2: {bleu['bleu2']:.4f} BLEU-3: {bleu['bleu3']:.4f} BLEU-4: {bleu['bleu4']:.4f}')
 
         with open(validation_file, "a", encoding="utf-8") as opened_file:
             opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_train_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}\n')
@@ -144,9 +147,11 @@ def train_model(cfg_file: str):
         #     torch.cuda.empty_cache()
     logger.info('Training Completed.')
 
-def validate_model(model, val_loader, criterion, device):
+def validate_model(model, val_loader, criterion, tokenizer, device, max_output_length=30):
     model.eval()
     total_val_loss = 0
+    hypotheses = []
+    references = []
 
     with torch.no_grad():
         for batch in tqdm(val_loader, total=len(val_loader)):
@@ -167,7 +172,24 @@ def validate_model(model, val_loader, criterion, device):
             val_loss = criterion(logits.view(-1, model.decoder_config.vocab_size), label.view(-1))
             total_val_loss += val_loss.item()
 
-
+            # Perform greedy decoding
+            encoder_output = model.encode(keypoints, keypoints_mask)[0]
+            decoded_sequences = greedy_decode(
+                src_mask=keypoints_mask,
+                bos_index=tokenizer.lang_code_to_id.get('si_LK'),
+                eos_index=tokenizer.eos_token_id,
+                max_output_length=max_output_length,
+                decoder=model.decoder,
+                encoder_output=encoder_output,
+                device=device
+            )
+            
+            ref_text = tokenizer.batch_decode(label.squeeze(1).detach().cpu().numpy(), skip_special_tokens=True)
+            hyp_text = tokenizer.batch_decode(decoded_sequences, skip_special_tokens=True)
+            references.extend(ref_text)
+            hypotheses.extend(hyp_text)
+        
     avg_val_loss = total_val_loss / len(val_loader)
+    bleu = bleu(references, hypotheses)
 
-    return avg_val_loss
+    return avg_val_loss, bleu

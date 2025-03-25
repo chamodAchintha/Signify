@@ -1,6 +1,67 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
+from torch import Tensor
+
+def greedy_decode(
+    src_mask: Tensor,
+    bos_index: int,
+    eos_index: int,
+    max_output_length: int,
+    decoder,
+    encoder_output: Tensor,
+    device: str = "cpu"
+) -> np.array:
+    """
+    Greedy decoding for the Transformer with an mBART decoder.
+
+    :param src_mask: Mask for source inputs, 0 for padding positions.
+    :param tokenizer: Hugging Face tokenizer for tokenization.
+    :param bos_index: Index of <s> (BOS) in the vocabulary.
+    :param eos_index: Index of </s> (EOS) in the vocabulary.
+    :param max_output_length: Maximum output length.
+    :param decoder: mBART decoder for autoregressive decoding.
+    :param encoder_output: Encoder hidden states for cross-attention.
+    :param encoder_hidden: Encoder final state (unused in Transformer).
+    :param device: Computation device ("cpu" or "cuda").
+    :return:
+        - stacked_output: Output hypotheses (2D array of indices).
+        - None (for compatibility with original function).
+    """
+
+    batch_size = src_mask.size(0)
+
+    # Start with BOS token
+    ys = torch.full((batch_size, 1, 1), bos_index, dtype=torch.long, device=device)
+
+    # Attention mask for decoder (initially all ones)
+    trg_mask = torch.ones_like(ys.squeeze(1), dtype=torch.long, device=device)
+
+    for _ in range(max_output_length):
+        with torch.no_grad():
+            logits, _ = decoder(
+                encoder_attention_mask=src_mask,
+                encoder_outputs=(encoder_output,),
+                decoder_input_ids=ys,
+                decoder_attention_mask=trg_mask,
+            )
+
+            # Get next token (greedy selection)
+            logits = logits[:, -1, :]  # Take last step's logits
+            next_word = torch.argmax(logits, dim=-1, keepdim=True)
+
+            # Append next token to sequence
+            ys = torch.cat([ys, next_word.unsqueeze(1)], dim=2)
+
+            trg_mask = torch.cat([trg_mask, torch.ones_like(next_word, device=device)], dim=1)
+            
+
+            # Stop if EOS is generated in all sequences
+            if torch.all(next_word == eos_index):
+                break
+
+    return ys.detach().cpu().numpy()
+
 
 def beam_search(
     model,
