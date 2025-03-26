@@ -6,6 +6,7 @@ from signjoey.sinhala_sentence.translation_model import SinhalaSignTranslationMo
 from signjoey.sinhala_sentence.data import load_test_data
 from signjoey.sinhala_sentence.search import greedy_decode
 from signjoey.metrics import bleu, rouge
+import random
 
 def test_translation_model(cfg_file: str):
     cfg = load_config(cfg_file)
@@ -62,4 +63,14 @@ def test_translation_model(cfg_file: str):
     rouge_score = rouge(references, hypotheses)
     
     logger.info(f">> BLEU-1: {bleu_scores['bleu1']:.4f}, BLEU-2: {bleu_scores['bleu2']:.4f}, BLEU-3: {bleu_scores['bleu3']:.4f}, BLEU-4: {bleu_scores['bleu4']:.4f}, ROUGE: {rouge_score:.4f}")
+
+    sample_indices = random.sample(range(len(references)), min(10, len(references)))
+    samples = [(references[i], hypotheses[i]) for i in sample_indices]
+
+    logger.info(">> Sample Sentences:")
+    for sample in samples:
+        logger.info(f"Reference: {sample[0]} - Hypothesis: {sample[1]}")
+
+
     logger.info("Testing completed.")
+
