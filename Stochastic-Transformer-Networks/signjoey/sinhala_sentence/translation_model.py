@@ -59,6 +59,8 @@ class SinhalaSignTranslationModel(nn.Module):
         
         self.decoder_config = self.decoder.mbart_config
 
+        self.projection = nn.Linear(cfg['model']['encoder'].get('hidden_size'), self.decoder_config.d_model)
+
     def forward(
         self, 
         sgn: Tensor, 
@@ -81,10 +83,12 @@ class SinhalaSignTranslationModel(nn.Module):
             sgn_mask.unsqueeze(1).expand(-1, 1, -1).bool()
         )
 
+        encoder_projection = (self.projection(encoder_output[0]),)
+
         # Pass encoder output to decoder
         logits, decoder_last_hidden_state = self.decoder(
             encoder_attention_mask=sgn_mask,
-            encoder_outputs=encoder_output,
+            encoder_outputs=encoder_projection,
             decoder_input_ids=text_input_ids,
             decoder_attention_mask=text_attention_mask,
             labels=label
@@ -99,10 +103,12 @@ class SinhalaSignTranslationModel(nn.Module):
             sgn_mask.unsqueeze(1).expand(-1, 1, -1).bool()
         )
         # Encode sign language representations
-        return self.encoder(
+        encoder_output = self.encoder(
             sgn_embedded, 
             sgn_mask.unsqueeze(1).expand(-1, 1, -1).bool()
         )
+
+        return (self.projection(encoder_output[0]),)
     
     def decode(self, encoder_output , sgn_mask: Tensor, text_input_ids: Tensor, text_attention_mask: Tensor, label: Tensor):
         return self.decoder(

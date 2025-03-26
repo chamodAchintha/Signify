@@ -40,7 +40,7 @@ model:
     num_layers: 3
     num_heads: 8
     embeddings:
-      embedding_dim: 1024
+      embedding_dim: 512
       scale: false
       bayesian: true
       ibp: false
@@ -48,8 +48,8 @@ model:
       norm_type: batch
       activation_type: lwta
       lwta_competitors: 4
-    hidden_size: 1024
-    ff_size: 1024
+    hidden_size: 512
+    ff_size: 2048
     dropout: 0.2
   decoder:
     freeze: true
