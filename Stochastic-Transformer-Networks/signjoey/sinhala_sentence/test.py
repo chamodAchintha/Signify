@@ -9,12 +9,12 @@ from signjoey.metrics import bleu, rouge
 
 def test_translation_model(cfg_file: str):
     cfg = load_config(cfg_file)
-    test_config = cfg['testing']
+    train_config = cfg['training']
     
     # Load logger
-    logger = make_logger(model_dir=test_config["model_dir"], log_file=f"{cfg['name']}_test.log")
+    logger = make_logger(model_dir=train_config["model_dir"], log_file=f"{cfg['name']}_test.log")
     
-    device = torch.device("cuda" if torch.cuda.is_available() and test_config.get("use_cuda", False) else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and train_config.get("use_cuda", False) else "cpu")
 
     # Load test data
     test_loader, tokenizer = load_test_data(cfg, logger)
