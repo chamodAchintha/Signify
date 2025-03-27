@@ -33,6 +33,7 @@ def greedy_decode(
 
     # Start with BOS token
     ys = torch.full((batch_size, 1, 1), bos_index, dtype=torch.long, device=device)
+    finished = torch.zeros(batch_size, dtype=torch.bool, device=device)
 
     # Attention mask for decoder (initially all ones)
     trg_mask = torch.ones_like(ys.squeeze(1), dtype=torch.long, device=device)
@@ -50,14 +51,16 @@ def greedy_decode(
             logits = logits[:, -1, :]  # Take last step's logits
             next_word = torch.argmax(logits, dim=-1, keepdim=True)
 
+            finished |= (next_word.squeeze(1) == eos_index)
+            next_word[finished] = eos_index
             # Append next token to sequence
             ys = torch.cat([ys, next_word.unsqueeze(1)], dim=2)
 
             trg_mask = torch.cat([trg_mask, torch.ones_like(next_word, device=device)], dim=1)
-            
+
 
             # Stop if EOS is generated in all sequences
-            if torch.all(next_word == eos_index):
+            if finished.all():
                 break
 
     return ys.squeeze(1).detach().cpu().numpy()

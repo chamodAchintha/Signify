@@ -46,10 +46,11 @@ class SinhalaSignTranslationModel(nn.Module):
         use_checkpoint = cfg['model']['encoder'].get('use_checkpoint', False)
         if use_checkpoint:
             use_cuda = cfg["training"].get("use_cuda", False)
+            device = torch.device("cuda" if (torch.cuda.is_available() and use_cuda) else "cpu")
             checkpoint_path = cfg['model']['encoder']['checkpoint']
             if not os.path.exists(checkpoint_path):
                  raise FileNotFoundError(f"Checkpoint '{checkpoint_path}' does not exist.")
-            model_checkpoint = torch.load(checkpoint_path, map_location="cuda" if use_cuda else "cpu", weights_only=False)
+            model_checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
             encoder_state_dict = {k[8:]: v for k, v in model_checkpoint["model_state_dict"].items() if k.startswith('encoder.')}
             embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state_dict"].items() if k.startswith('sgn_embed.')}
             self.encoder.load_state_dict(encoder_state_dict)
