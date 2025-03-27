@@ -76,52 +76,52 @@ class MBartDecoder(nn.Module):
                     param.requires_grad = True
                     logger.info(f"Decoder layer - {i} - {name} is set to train")
 
+    # This is if inference_samples from stochastic encoder are present
+    # def forward(
+    #     self,
+    #     encoder_attention_mask: Optional[torch.Tensor] = None,
+    #     decoder_input_ids: Optional[torch.LongTensor] = None,
+    #     decoder_attention_mask: Optional[torch.LongTensor] = None,
+    #     encoder_outputs: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
+    #     labels: Optional[torch.LongTensor] = None,
+    # ):
+    #     if self.training:
+    #         return self.forward_(
+    #             encoder_attention_mask=encoder_attention_mask,
+    #             encoder_outputs=encoder_outputs,
+    #             decoder_input_ids=decoder_input_ids,
+    #             decoder_attention_mask=decoder_attention_mask,
+    #             labels=labels
+    #         )
+    #     else:
+    #         logits = None
+    #         output = None
+    #         encoder_s = encoder_outputs[0].shape[-1]
+    #         inference_sample_size= max(self.inference_sample_size, encoder_s)
 
-    def forward(
-        self,
-        encoder_attention_mask: Optional[torch.Tensor] = None,
-        decoder_input_ids: Optional[torch.LongTensor] = None,
-        decoder_attention_mask: Optional[torch.LongTensor] = None,
-        encoder_outputs: Optional[Tuple[Tuple[torch.FloatTensor]]] = None,
-        labels: Optional[torch.LongTensor] = None,
-    ):
-        if self.training:
-            return self.forward_(
-                encoder_attention_mask=encoder_attention_mask,
-                encoder_outputs=encoder_outputs,
-                decoder_input_ids=decoder_input_ids,
-                decoder_attention_mask=decoder_attention_mask,
-                labels=labels
-            )
-        else:
-            logits = None
-            output = None
-            encoder_s = encoder_outputs[0].shape[-1]
-            inference_sample_size= max(self.inference_sample_size, encoder_s)
-
-            for i in range(inference_sample_size):
-                logits_, output_ = self.forward_(
-                    encoder_attention_mask=encoder_attention_mask,
-                    encoder_outputs=(encoder_outputs[0][...,i%encoder_s],),
-                    decoder_input_ids=decoder_input_ids,
-                    decoder_attention_mask=decoder_attention_mask,
-                    labels=labels
-                )
-                if logits is None:
-                    logits = logits_
-                    output = output_
-                else:
-                    logits += logits_
-                    output += output_
+    #         for i in range(inference_sample_size):
+    #             logits_, output_ = self.forward_(
+    #                 encoder_attention_mask=encoder_attention_mask,
+    #                 encoder_outputs=(encoder_outputs[0][...,i%encoder_s],),
+    #                 decoder_input_ids=decoder_input_ids,
+    #                 decoder_attention_mask=decoder_attention_mask,
+    #                 labels=labels
+    #             )
+    #             if logits is None:
+    #                 logits = logits_
+    #                 output = output_
+    #             else:
+    #                 logits += logits_
+    #                 output += output_
 
                 
-            output=output*1.0/inference_sample_size
-            logits=logits*1.0/inference_sample_size
+    #         output=output*1.0/inference_sample_size
+    #         logits=logits*1.0/inference_sample_size
 
-            return logits, output
+    #         return logits, output
 
-
-    def forward_(
+    # if inference_samples from stochastic encoder are present, make this as forward_ function
+    def forward(
         self,
         encoder_attention_mask: Optional[torch.Tensor] = None,
         decoder_input_ids: Optional[torch.LongTensor] = None,

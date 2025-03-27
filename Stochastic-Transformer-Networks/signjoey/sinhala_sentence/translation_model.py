@@ -6,6 +6,8 @@ from signjoey.embeddings import SpatialEmbeddings
 from signjoey.encoders import TransformerEncoder
 from signjoey.classification_head import MLPHead, ConvHead, RNNHead, AttentionHead
 from signjoey.sinhala_sentence.mbart_decoder import MBartDecoder
+from signjoey.sinhala_sentence.projection import Projection
+import torch
 
 class SinhalaSignTranslationModel(nn.Module):
     def __init__(self, cfg, logger):
@@ -47,7 +49,7 @@ class SinhalaSignTranslationModel(nn.Module):
             checkpoint_path = cfg['model']['encoder']['checkpoint']
             if not os.path.exists(checkpoint_path):
                  raise FileNotFoundError(f"Checkpoint '{checkpoint_path}' does not exist.")
-            model_checkpoint = load_checkpoint(checkpoint_path, use_cuda=use_cuda)
+            model_checkpoint = torch.load(checkpoint_path, map_location="cuda" if use_cuda else "cpu", weights_only=False)
             encoder_state_dict = {k[8:]: v for k, v in model_checkpoint["model_state_dict"].items() if k.startswith('encoder.')}
             embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state_dict"].items() if k.startswith('sgn_embed.')}
             self.encoder.load_state_dict(encoder_state_dict)
@@ -59,7 +61,7 @@ class SinhalaSignTranslationModel(nn.Module):
         
         self.decoder_config = self.decoder.mbart_config
 
-        self.projection = nn.Linear(cfg['model']['encoder'].get('hidden_size'), self.decoder_config.d_model)
+        self.projection = Projection(cfg['model']['encoder'].get('hidden_size'), self.decoder_config.d_model, cfg['model']['inference_sample_size'])
 
     def forward(
         self, 

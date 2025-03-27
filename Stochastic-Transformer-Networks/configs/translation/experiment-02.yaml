@@ -29,7 +29,7 @@ model:
   inference_sample_size: 4
   encoder:
     use_checkpoint: true
-    checkpoint: ./output/best-kaggle.ckpt
+    checkpoint: ./pretrained/best_model.pth
     skip_encoder: false
     type: transformer
     bayesian_attention: true
