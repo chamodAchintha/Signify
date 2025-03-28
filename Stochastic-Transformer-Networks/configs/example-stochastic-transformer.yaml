@@ -1,7 +1,7 @@
 name: example_experiment_stochastic_transformer
 data:
   data_path: ./data/
-  version: phoenix_2014_trans
+  version: sinhala_sentence
   sgn: sign
   txt: text
   gls: gloss
