@@ -121,6 +121,6 @@ model:
     hidden_size: 512
     ff_size: 2048
     dropout: 0.2
-    use_checkpoint: true
+    use_checkpoint: false
     checkpoint: "./SavedModels/original_data/stochastic_transformer/best.ckpt"
-    freeze: true
+    freeze: false
