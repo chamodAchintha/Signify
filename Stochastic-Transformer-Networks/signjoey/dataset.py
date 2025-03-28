@@ -48,45 +48,47 @@ class SignTranslationDataset(data.Dataset):
                 ("txt", fields[4]),
             ]
 
-        if not isinstance(path, list):
-            path = [path]
+        # Load the raw data
+        with open(path, 'rb') as f:
+            raw_data = pickle.load(f)
 
-        samples = {}
-        for annotation_file in path:
-            tmp = load_dataset_file(annotation_file)
-            for s in tmp:
-                seq_id = s["name"]
-                if seq_id in samples:
-                    assert samples[seq_id]["name"] == s["name"]
-                    assert samples[seq_id]["signer"] == s["signer"]
-                    assert samples[seq_id]["gloss"] == s["gloss"]
-                    assert samples[seq_id]["text"] == s["text"]
-                    samples[seq_id]["sign"] = torch.cat(
-                        [samples[seq_id]["sign"], s["sign"]], axis=1
-                    )
-                else:
-                    samples[seq_id] = {
-                        "name": s["name"],
-                        "signer": s["signer"],
-                        "gloss": s["gloss"],
-                        "text": s["text"],
-                        "sign": s["sign"],
-                    }
+
+        # samples = {}
+        # for annotation_file in path:
+        #     tmp = load_dataset_file(annotation_file)
+        #     for s in tmp:
+        #         seq_id = s["name"]
+        #         if seq_id in samples:
+        #             assert samples[seq_id]["name"] == s["name"]
+        #             assert samples[seq_id]["signer"] == s["signer"]
+        #             assert samples[seq_id]["gloss"] == s["gloss"]
+        #             assert samples[seq_id]["text"] == s["text"]
+        #             samples[seq_id]["sign"] = torch.cat(
+        #                 [samples[seq_id]["sign"], s["sign"]], axis=1
+        #             )
+        #         else:
+        #             samples[seq_id] = {
+        #                 "name": s["name"],
+        #                 "signer": s["signer"],
+        #                 "gloss": s["gloss"],
+        #                 "text": s["text"],
+        #                 "sign": s["sign"],
+        #             }
 
         examples = []
-        for s in samples:
-            sample = samples[s]
+        for item in raw_data:
+            # Create example using your data structure
             examples.append(
                 data.Example.fromlist(
                     [
-                        sample["name"],
-                        sample["signer"],
-                        # This is for numerical stability
-                        sample["sign"] + 1e-8,
-                        sample["gloss"].strip(),
-                        sample["text"].strip(),
+                        item['name'],
+                        item['signer_id'],
+                        item['keypoints'],  # The sign features
+                        "",  # Empty gloss if not available
+                        item['sinhala_sentence'],  # The text translation
                     ],
-                    fields,
+                    fields
                 )
             )
+        
         super().__init__(examples, fields, **kwargs)
