@@ -9,11 +9,15 @@ import pickle
 import gzip
 import torch
 
-
 def load_dataset_file(filename):
-    with gzip.open(filename, "rb") as f:
-        loaded_object = pickle.load(f)
-        return loaded_object
+    try:
+        # Try opening as a gzip file first
+        with gzip.open(filename, "rb") as f:
+            return pickle.load(f)
+    except gzip.BadGzipFile:
+        # If not a gzipped file, open normally
+        with open(filename, "rb") as f:
+            return pickle.load(f)
 
 
 class SignTranslationDataset(data.Dataset):
