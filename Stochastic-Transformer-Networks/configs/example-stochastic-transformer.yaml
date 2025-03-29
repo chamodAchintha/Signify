@@ -47,7 +47,7 @@ training:
     batch_size: 32
     eval_batch_size: 32
     num_valid_log: 5
-    epochs: 500
+    epochs: 200
     early_stopping_metric: eval_metric
     batch_type: sentence
     translation_normalization: batch
