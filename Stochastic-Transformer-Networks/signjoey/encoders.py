@@ -246,26 +246,21 @@ class TransformerEncoder(Encoder):
    
     # pylint: disable=arguments-differ
     def forward(
-        self, embed_src: Tensor, mask: Tensor, src_length: Tensor = None
+        self, embed_src: Tensor, src_length: Tensor, mask: Tensor
     ) -> (Tensor, Tensor):
-        # print('embed_src shape:', embed_src.shape)
         if self.training:
             return self.forward_(embed_src,src_length,mask)
         else:
             
             out=[]
             embed_s=embed_src.shape[-1]
-            # print('embed_src shape:', embed_src.shape)
-            # print('embed_s:', embed_s)
             inference_sample_size= max(self.inference_sample_size,embed_s)
             for i in range(inference_sample_size):
                
                x_, _=  self.forward_(embed_src[...,i%embed_s],src_length,mask)
                
                out.append(torch.unsqueeze(x_,-1))
-        
         out=torch.cat(out,-1)
-        # print('out shape:', out.shape)
       
  
         
