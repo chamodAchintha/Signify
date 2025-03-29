@@ -5,9 +5,9 @@ data:
     sgn: sign 
     txt: text
     gls: gloss
-    train: sinhala-sentence-5fps-102kpt-train.pkl
-    dev:   sinhala-sentence-5fps-102kpt-dev.pkl
-    test:  sinhala-sentence-5fps-102kpt-test.pkl
+    train: sinhala-sentence-5fps-102kpt-train.pkl.gz
+    dev:   sinhala-sentence-5fps-102kpt-dev.pkl.gz
+    test:  sinhala-sentence-5fps-102kpt-test.pkl.gz
     feature_size: 204
     level: word
     txt_lowercase: true
