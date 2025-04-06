@@ -8,7 +8,6 @@ data:
   max_sent_length: 30 # tokens wise
   tgt_language: si_LK
 training:
-  # load_model: "./SavedModels/example/13400.ckpt"
   random_seed: 44
   model_dir: "./SavedModels/translation_example"
   optimizer: adamw
@@ -27,6 +26,8 @@ training:
   # es_min_delta: 0
 model:
   inference_sample_size: 4
+  use_checkpoint: true
+  checkpoint: ./SavedModels/translation_example/best_model.pth
   encoder:
     use_checkpoint: false
     checkpoint: ./output/best-kaggle.ckpt

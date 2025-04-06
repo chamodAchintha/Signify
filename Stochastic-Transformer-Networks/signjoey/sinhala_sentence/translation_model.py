@@ -42,9 +42,9 @@ class SinhalaSignTranslationModel(nn.Module):
             inference_sample_size=cfg['model']['inference_sample_size']
         )
         
-        # load encoder and spatial embedding state from checkpoint
-        use_checkpoint = cfg['model']['encoder'].get('use_checkpoint', False)
-        if use_checkpoint:
+        # load only the encoder and encoder spatial embedding state from checkpoint
+        use_encoder_checkpoint = cfg['model']['encoder'].get('use_checkpoint', False)
+        if use_encoder_checkpoint:
             use_cuda = cfg["training"].get("use_cuda", False)
             device = torch.device("cuda" if (torch.cuda.is_available() and use_cuda) else "cpu")
             checkpoint_path = cfg['model']['encoder']['checkpoint']
@@ -58,11 +58,27 @@ class SinhalaSignTranslationModel(nn.Module):
             self.logger.info(f'loaded the embed and encoder state from the checkpoint - {checkpoint_path}')
 
         # mbart deocder
-        self.decoder = MBartDecoder(cfg, logger)
-        
+        self.decoder = MBartDecoder(cfg, logger) 
         self.decoder_config = self.decoder.mbart_config
-
+        
+        # map encoder and decoder
         self.projection = Projection(cfg['model']['encoder'].get('hidden_size'), self.decoder_config.d_model, cfg['model']['inference_sample_size'])
+
+        # load full model from a checkpoint
+        use_model_checkpoint = cfg['model'].get('use_checkpoint', False)
+        if use_model_checkpoint:
+            if use_encoder_checkpoint:
+                logger.warn(f"Already loaded an encoder checkpoint. It will be discarded.")
+
+            use_cuda = cfg["training"].get("use_cuda", False)
+            device = torch.device("cuda" if (torch.cuda.is_available() and use_cuda) else "cpu")
+
+            checkpoint_path = cfg['model']['checkpoint']
+            if not os.path.exists(checkpoint_path):
+                raise FileNotFoundError(f"Checkpoint '{checkpoint_path}' does not exist.")
+            
+            model_checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+            self.load_state_dict(model_checkpoint['model_state_dict'])
 
     def forward(
         self, 
