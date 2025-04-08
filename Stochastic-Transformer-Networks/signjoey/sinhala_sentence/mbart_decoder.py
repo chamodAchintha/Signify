@@ -59,22 +59,6 @@ class MBartDecoder(nn.Module):
         self.logger = logger
         self.inference_sample_size=cfg['model']['inference_sample_size']
 
-        if cfg['model']['decoder'].get('freeze', True):
-            freeze_params(self)
-            logger.info('Freezed all decoder layers')
-
-        num_layers_to_train = cfg['model']['decoder'].get('num_layers_to_train', 12)
-        if num_layers_to_train > self.mbart_config.decoder_layers:
-            logger.warn(f"number of decoder layers to train ({num_layers_to_train}) is greater than the number of layers. Train all layers ({self.mbart_config.decoder_layers})")
-            num_layers_to_train = self.mbart_config.decoder_layers
-
-        train_layers = cfg['model']['decoder'].get('train_layers', [])
-
-        for i in range(num_layers_to_train):
-            for name, param in self.decoder.layers[i].named_parameters():
-                if name.split('.')[0] in train_layers:
-                    param.requires_grad = True
-                    logger.info(f"Decoder layer - {i} - {name} is set to train")
 
     # This is if inference_samples from stochastic encoder are present
     # def forward(
@@ -218,3 +202,30 @@ class MBartDecoder(nn.Module):
         #     encoder_hidden_states=outputs.encoder_hidden_states,
         #     encoder_attentions=outputs.encoder_attentions,
         # )
+
+    def freeze_layers(self, cfg):
+
+        if cfg['model']['decoder'].get('freeze', True):
+            freeze_params(self)
+            self.logger.info('Freezed all decoder layers')
+
+        num_layers_to_train = cfg['model']['decoder'].get('num_layers_to_train', 12)
+        total_layers = self.mbart_config.decoder_layers
+
+        if num_layers_to_train > total_layers:
+            self.logger.warn(f"number of decoder layers to train ({num_layers_to_train}) is greater than the number of layers. Train all layers ({total_layers})")
+            num_layers_to_train = total_layers
+
+        train_lower_layers = cfg['model']['decoder'].get('train_lower_layers', True)
+        train_layers = cfg['model']['decoder'].get('train_layers', [])
+
+        if train_lower_layers:
+            layer_indices = range(num_layers_to_train)
+        else:
+            layer_indices = range(total_layers - num_layers_to_train, total_layers)
+
+        for i in layer_indices:
+            for name, param in self.decoder.layers[i].named_parameters():
+                if name.split('.')[0] in train_layers:
+                    param.requires_grad = True
+                    self.logger.info(f"Decoder layer - {i} - {name} is set to train")

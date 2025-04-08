@@ -41,6 +41,7 @@ model:
     num_layers: 3
     num_heads: 8
     embeddings:
+      freeze: false
       embedding_dim: 1024
       scale: false
       bayesian: true
@@ -52,9 +53,15 @@ model:
     hidden_size: 1024
     ff_size: 2048
     dropout: 0.2
+    freeze: true
+    num_layers_to_freeze: 2
+    freeze_lower_layers: true
+    freeze_layers: [feed_forward] # subset of [layer_norm, src_src_att, feed_forward]
   decoder:
     freeze: true
     num_layers_to_train: 6 # <=12
+    train_lower_layers: true
     # train_layers should be a subset of
     # [self_attn, self_attn_layer_norm, encoder_attn, encoder_attn_layer_norm, fc1, fc2, final_layer_norm]
     train_layers: [encoder_attn, encoder_attn_layer_norm]
+  freeze_projection_layer: false

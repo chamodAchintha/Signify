@@ -8,6 +8,7 @@ from signjoey.classification_head import MLPHead, ConvHead, RNNHead, AttentionHe
 from signjoey.sinhala_sentence.mbart_decoder import MBartDecoder
 from signjoey.sinhala_sentence.projection import Projection
 import torch
+from signjoey.helpers import freeze_params
 
 class SinhalaSignTranslationModel(nn.Module):
     def __init__(self, cfg, logger):
@@ -83,6 +84,9 @@ class SinhalaSignTranslationModel(nn.Module):
             self.load_state_dict(model_checkpoint['model_state_dict'])
             self.logger.info(f"Checkpoint Loaded.")
 
+        self.freeze(cfg)
+
+
     def forward(
         self, 
         sgn: Tensor, 
@@ -140,6 +144,48 @@ class SinhalaSignTranslationModel(nn.Module):
             decoder_attention_mask=text_attention_mask,
             labels=label
         )
+    
+    def freeze(self, cfg):
+        # freeze sign embeddings
+        freeze_sign_embed = cfg['model']['encoder']['embeddings'].get('freeze', False)
+        if freeze_sign_embed:
+            freeze_params(self.sgn_embed)
+            self.logger.info('Freezed sign embeddings.')
+
+        # freeze encoder layers
+        freeze_encoder = cfg['model']['encoder'].get('freeze', False)
+        if freeze_encoder:
+            total_encoder_layers = cfg['model']['encoder']['num_layers']
+            num_layers_to_freeze = cfg['model']['encoder'].get('num_layers_to_freeze', 0)
+            freeze_lower_layers = cfg['model']['encoder'].get('freeze_lower_layers', True)
+
+
+            if num_layers_to_freeze > total_encoder_layers:
+                self.logger.info(f"Encoder has {total_encoder_layers} layers. Asked to freeze {num_layers_to_freeze} layers!")
+                self.logger.info('All encoder attention layers will be freezed.')
+                num_layers_to_freeze = total_encoder_layers
+
+            if freeze_lower_layers:
+                layer_indices = range(num_layers_to_freeze)
+            else:
+                layer_indices = range(total_encoder_layers - num_layers_to_freeze, total_encoder_layers)
+
+
+            freeze_layers = cfg['model']['encoder'].get('freeze_layers', [])
+
+            for i in layer_indices:
+                for name, param in self.encoder.layers[i].named_parameters():
+                    if name.split('.')[0] in freeze_layers:
+                        param.requires_grad = False
+                        self.logger.info(f"Encoder layer - {i} - {name} is freezed.")
+        
+        # freeze projection layer
+        freeze_projection_layer = cfg['model'].get('freeze_projection_layer', False)
+        if freeze_projection_layer:
+            freeze_params(self.projection)
+
+        # freeze decoder layer
+        self.decoder.freeze_layers(cfg)
         
 
 
