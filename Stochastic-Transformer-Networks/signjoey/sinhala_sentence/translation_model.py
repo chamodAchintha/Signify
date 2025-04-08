@@ -183,6 +183,7 @@ class SinhalaSignTranslationModel(nn.Module):
         freeze_projection_layer = cfg['model'].get('freeze_projection_layer', False)
         if freeze_projection_layer:
             freeze_params(self.projection)
+            self.logger.info('Freezed projection layer.')
 
         # freeze decoder layer
         self.decoder.freeze_layers(cfg)

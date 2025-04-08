@@ -58,7 +58,8 @@ model:
     freeze_lower_layers: true
     freeze_layers: [feed_forward] # subset of [layer_norm, src_src_att, feed_forward]
   decoder:
-    freeze: true
+    freeze: true # this will freeze all layers
+    # if freeze is true, you can choose to train some layers using following layers. if freeze is false all layers will be trained regardless following layers.
     num_layers_to_train: 6 # <=12
     train_lower_layers: true
     # train_layers should be a subset of
