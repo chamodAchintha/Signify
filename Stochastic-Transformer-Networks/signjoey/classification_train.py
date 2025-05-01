@@ -101,6 +101,8 @@ def train_model(cfg_file: str):
         for batch_idx, (data, target, mask) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch + 1}"):
             mask = mask.unsqueeze(1).expand(-1, 1, -1)
             data, target, mask = data.to(device), target.to(device), mask.to(device)
+            
+            logger.info(data.shape, target.shape, mask.shape)
 
             optimizer.zero_grad()
             output = model(data, mask)

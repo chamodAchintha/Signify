@@ -307,14 +307,15 @@ class STDATransformerEncoderLayer(nn.Module):
         :param mask: input mask
         :return: output tensor
         """
+        print("x: ", x.shape)
         x_norm = self.layer_norm(x)
-
-
+        print("xnorm: ", x_norm.shape)
         # Self-attention (standard temporal transformer attention)
         attn_out = self.src_src_att(x_norm, x_norm, x_norm, mask)
 
         # Channel attention
         ch_attn_in = x_norm.transpose(-1, -2) * mask.unsqueeze(1)
+        print("chn in: ", ch_attn_in.shape)
         ch_attn_out = self.chanel_att(ch_attn_in, ch_attn_in, ch_attn_in, None)
         ch_attn_out = ch_attn_out.transpose(-1, -2)  # Transpose back
 
