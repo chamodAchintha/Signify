@@ -102,8 +102,6 @@ def train_model(cfg_file: str):
             mask = mask.unsqueeze(1).expand(-1, 1, -1)
             data, target, mask = data.to(device), target.to(device), mask.to(device)
 
-            print(data.shape, target.shape, mask.shape)
-
             optimizer.zero_grad()
             output = model(data, mask)
             loss = criterion(output, target)
