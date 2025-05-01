@@ -257,7 +257,69 @@ class TransformerEncoderLayer(nn.Module):
         o = self.feed_forward(h)
         return o
 
-    
+
+class STDATransformerEncoderLayer(nn.Module):
+    """
+    One Transformer encoder layer has a Multi-head attention layer plus
+    a position-wise feed-forward layer.
+    """
+
+    def __init__(
+        self, hidden_size: int = 0, seq_len: int = 0, ff_size: int = 0, num_heads: int = 0, dropout: float = 0.1,
+        bayesian_attention=False,bayesian_feedforward=False,ibp=False,activation='relu',lwta_competitors=4
+    ):
+        """
+        A single Transformer layer.
+        :param size:
+        :param ff_size:
+        :param num_heads:
+        :param dropout:
+        """
+        super(STDATransformerEncoderLayer, self).__init__()
+        
+        self.layer_norm = nn.LayerNorm(hidden_size, eps=1e-6)
+        self.attn_norm = nn.LayerNorm(hidden_size, eps=1e-6)
+
+        self.src_src_att = MultiHeadedAttention(num_heads, hidden_size, dropout=dropout,
+            bayesian=bayesian_attention,ibp=ibp,scale_out=(0.125))
+        self.src_src_att.ran=True
+
+        self.chanel_att = MultiHeadedAttention(num_heads, seq_len, dropout=dropout,
+            bayesian=bayesian_attention,ibp=ibp,scale_out=(0.125))
+        self.chanel_att.ran=True
+        
+        self.feed_forward = PositionwiseFeedForward( input_size=hidden_size, ff_size=ff_size, dropout=dropout,
+            bayesian=bayesian_feedforward,ibp=ibp,activation=activation,lwta_competitors=lwta_competitors,scale_out=(0.2)
+        )
+        self.dropout = nn.Dropout(dropout)
+        self.size = hidden_size
+     
+    # pylint: disable=arguments-differ
+    def forward(self, x: Tensor, mask: Tensor) -> Tensor:
+        """
+        Forward pass for a single transformer encoder layer.
+        First applies layer norm, then self attention,
+        then dropout with residual connection (adding the input to the result),
+        and then a position-wise feed-forward layer.
+
+        :param x: layer input
+        :param mask: input mask
+        :return: output tensor
+        """
+        x_norm = self.layer_norm(x)
+
+
+        # Self-attention (standard temporal transformer attention)
+        attn_out = self.src_src_att(x_norm, x_norm, x_norm, mask)
+
+        # Channel attention
+        ch_attn_out = self.chanel_att(x_norm.transpose(-1, -2), x_norm.transpose(-1, -2), x_norm.transpose(-1, -2), None)
+        ch_attn_out = ch_attn_out.transpose(-1, -2)  # Transpose back
+
+        h = self.attn_norm(self.dropout(attn_out + ch_attn_out) + x)
+     
+        o = self.feed_forward(h)
+        return o
     
 class TransformerDecoderLayer(nn.Module):
     """

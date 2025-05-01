@@ -1,7 +1,7 @@
 name: kaggle-ex13-912c-attention-102kpt
 data:
-  train_data_path: ./data/sinhala-word-5fps-5sample-912classes-102kpt-train.pkl
-  test_data_path: ./data/sinhala-word-5fps-5sample-912classes-102kpt-test.pkl
+  train_data_path: ./data/sinhala-word-5fps-20sample-122classes-102kpt-train.pkl
+  test_data_path: ./data/sinhala-word-5fps-20sample-122classes-102kpt-test.pkl
   val_split: 0.2
   feature_size: 204 # 102x2
   batch_size: 32
@@ -15,7 +15,7 @@ training:
   batch_size: 32
   epochs: 200
   shuffle: true
-  use_cuda: true
+  use_cuda: false
   betas:
     - 0.9
     - 0.998
