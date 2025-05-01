@@ -12,7 +12,7 @@ sys.path.append("/vol/research/extol/personal/cihan/code/SignJoey")
 
 def main():
     ap = argparse.ArgumentParser("Joey NMT")
-
+    
     ap.add_argument("mode", choices=["train", "test", "train_classifier", 'test_classifier'], help="train a model or test")
 
     ap.add_argument("config_path", type=str, help="path to YAML config file")

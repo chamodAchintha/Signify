@@ -284,7 +284,8 @@ class STDATransformerEncoderLayer(nn.Module):
             bayesian=bayesian_attention,ibp=ibp,scale_out=(0.125))
         self.src_src_att.ran=True
 
-        self.chanel_att = MultiHeadedAttention(num_heads, seq_len, dropout=dropout,
+        chn_num_heads = 1
+        self.chanel_att = MultiHeadedAttention(chn_num_heads, seq_len, dropout=dropout,
             bayesian=bayesian_attention,ibp=ibp,scale_out=(0.125))
         self.chanel_att.ran=True
         
