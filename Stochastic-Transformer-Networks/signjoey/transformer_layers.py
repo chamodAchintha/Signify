@@ -284,7 +284,8 @@ class STDATransformerEncoderLayer(nn.Module):
             bayesian=bayesian_attention,ibp=ibp,scale_out=(0.125))
         self.src_src_att.ran=True
 
-        self.chanel_att = MultiHeadedAttention(num_heads, seq_len, dropout=dropout,
+        chn_num_heads = 1
+        self.chanel_att = MultiHeadedAttention(chn_num_heads, seq_len, dropout=dropout,
             bayesian=bayesian_attention,ibp=ibp,scale_out=(0.125))
         self.chanel_att.ran=True
         
@@ -307,13 +308,12 @@ class STDATransformerEncoderLayer(nn.Module):
         :return: output tensor
         """
         x_norm = self.layer_norm(x)
-
-
         # Self-attention (standard temporal transformer attention)
         attn_out = self.src_src_att(x_norm, x_norm, x_norm, mask)
 
         # Channel attention
-        ch_attn_out = self.chanel_att(x_norm.transpose(-1, -2), x_norm.transpose(-1, -2), x_norm.transpose(-1, -2), None)
+        ch_attn_in = x_norm.transpose(-1, -2) * mask.bool()
+        ch_attn_out = self.chanel_att(ch_attn_in, ch_attn_in, ch_attn_in, None)
         ch_attn_out = ch_attn_out.transpose(-1, -2)  # Transpose back
 
         h = self.attn_norm(self.dropout(attn_out + ch_attn_out) + x)
