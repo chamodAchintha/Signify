@@ -1,7 +1,7 @@
 name: stage02-912c-attention-102kpt-stdat
 data:
-  train_data_path: ./data/sinhala-word-5fps-5sample-912classes-102kpt-train.pkl
-  test_data_path: ./data/sinhala-word-5fps-5sample-912classes-102kpt-test.pkl
+  train_data_path: ./data/classification/sinhala-word-5fps-5sample-912classes-102kpt-train.pkl
+  test_data_path: ./data/classification/sinhala-word-5fps-5sample-912classes-102kpt-test.pkl
   val_split: 0.2
   feature_size: 204 # 102x2
   batch_size: 32
