@@ -1,8 +1,9 @@
-name: experiment-02
+name: experiment-11
+# with 5fps sentence data, with synthetic data, load pretrained model (with mBart) with german keypoint data
 data:
-  train_data_path: ./data/sentence/5fps/by_signer/sinhala-sentence-5fps-102kpt-train.pkl.gz
-  dev_data_path: ./data/sentence/5fps/by_signer/sinhala-sentence-5fps-102kpt-dev.pkl.gz
-  test_data_path: ./data/sentence/5fps/by_signer/sinhala-sentence-5fps-102kpt-test.pkl.gz
+  train_data_path: ./data/synthetic/sinhala-sentence-5fps-102kpt-train.pkl.gz
+  dev_data_path: ./data/synthetic/sinhala-sentence-5fps-102kpt-dev.pkl.gz
+  test_data_path: ./data/synthetic/sinhala-sentence-5fps-102kpt-test.pkl.gz
   feature_size: 204 # 102x2
   batch_size: 32
   max_sent_length: 20 # tokens wise
@@ -10,7 +11,7 @@ data:
 training:
   # load_model: "./SavedModels/example/13400.ckpt"
   random_seed: 44
-  model_dir: "./SavedModels/experiment-02"
+  model_dir: "./SavedModels/experiment-11"
   optimizer: adamw
   learning_rate: 0.001
   batch_size: 32
@@ -27,8 +28,10 @@ training:
   # es_min_delta: 0
 model:
   inference_sample_size: 4
+  use_checkpoint: false
+  checkpoint: ./SavedModels/experiment-06/best_model.pth
   encoder:
-    use_checkpoint: true
+    use_checkpoint: false
     checkpoint: ./pretrained/recog-ex32/best_model.pth
     skip_encoder: false
     type: transformer
@@ -37,9 +40,10 @@ model:
     ibp: false
     activation: lwta
     lwta_competitors: 4
-    num_layers: 3
+    num_layers: 4
     num_heads: 8
     embeddings:
+      freeze: false
       embedding_dim: 512
       scale: false
       bayesian: true
@@ -51,9 +55,15 @@ model:
     hidden_size: 512
     ff_size: 2048
     dropout: 0.2
+    freeze: false
+    num_layers_to_freeze: 2
+    freeze_lower_layers: false
+    freeze_layers: [feed_forward] # subset of [layer_norm, src_src_att, feed_forward]
   decoder:
     freeze: true
     num_layers_to_train: 12 # <=12
+    train_lower_layers: true
     # train_layers should be a subset of
     # [self_attn, self_attn_layer_norm, encoder_attn, encoder_attn_layer_norm, fc1, fc2, final_layer_norm]
     train_layers: [encoder_attn, encoder_attn_layer_norm, fc1, fc2]
+  freeze_projection_layer: false

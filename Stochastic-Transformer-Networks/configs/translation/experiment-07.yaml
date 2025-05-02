@@ -1,16 +1,16 @@
-name: translation_example
+name: experiment-07
+# use pretrained german translation model on sinhala isolated dataset as a translation task
 data:
-  train_data_path: ./data/sinhala-sentence-5fps-102kpt-train.pkl.gz
-  dev_data_path: ./data/sinhala-sentence-5fps-102kpt-dev.pkl.gz
-  test_data_path: ./data/sinhala-sentence-5fps-102kpt-test.pkl.gz
+  train_data_path: ./data/isolated/5fps/updated-word-sinhala-5fps-102kpt-train.pkl.gz
+  dev_data_path: ./data/isolated/5fps/updated-word-sinhala-5fps-102kpt-dev.pkl.gz
+  test_data_path: ./data/isolated/5fps/updated-word-sinhala-5fps-102kpt-test.pkl.gz
   feature_size: 204 # 102x2
   batch_size: 32
-  seq_length: 40 # seq len of encoder - number of frames
   max_sent_length: 30 # tokens wise
   tgt_language: si_LK
 training:
   random_seed: 44
-  model_dir: "./SavedModels/translation_example"
+  model_dir: "./SavedModels/experiment-07"
   optimizer: adamw
   learning_rate: 0.001
   batch_size: 32
@@ -28,7 +28,7 @@ training:
 model:
   inference_sample_size: 4
   use_checkpoint: true
-  checkpoint: ./SavedModels/translation_example/best_model.pth
+  checkpoint: ./SavedModels/experiment-06/best_model.pth
   encoder:
     use_checkpoint: false
     checkpoint: ./output/best-kaggle.ckpt
@@ -40,11 +40,10 @@ model:
     activation: lwta
     lwta_competitors: 4
     num_layers: 3
-    stdat_layers: true # STDAT layers
     num_heads: 8
     embeddings:
       freeze: false
-      embedding_dim: 1024
+      embedding_dim: 512
       scale: false
       bayesian: true
       ibp: false
@@ -52,10 +51,10 @@ model:
       norm_type: batch
       activation_type: lwta
       lwta_competitors: 4
-    hidden_size: 1024
+    hidden_size: 512
     ff_size: 2048
     dropout: 0.2
-    freeze: true
+    freeze: false
     num_layers_to_freeze: 2
     freeze_lower_layers: true
     freeze_layers: [feed_forward] # subset of [layer_norm, src_src_att, feed_forward]
