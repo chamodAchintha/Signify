@@ -24,7 +24,7 @@ def test_model(cfg_file: str):
 
     # Load the checkpoint
     checkpoint_path = os.path.join(cfg["training"]["model_dir"], 'best_model.pth')
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, weights_only=False)
     logger.info(f"checkpoint loaded from {checkpoint_path}")
 
     # Load test data
