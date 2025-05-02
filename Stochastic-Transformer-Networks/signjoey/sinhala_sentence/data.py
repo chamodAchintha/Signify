@@ -26,7 +26,7 @@ def create_target_token_ids(input_ids: torch.Tensor, pad_token_id: int):
     return prev_output_tokens
 
 class SinhalaSignDataset(Dataset):
-    def __init__(self, data_path, tokenizer, decoder_max_len=50):
+    def __init__(self, data_path, tokenizer, encoder_seq_len, decoder_max_len=50):
         """
         Args:
             data_list (list of dicts): Dataset entries, each containing keypoints and target sentence.
@@ -35,7 +35,7 @@ class SinhalaSignDataset(Dataset):
         """
         self.data = load_dataset_file(data_path)
         self.tokenizer = tokenizer
-        self.encoder_max_length = max([entry["keypoints"].size(0) for entry in self.data])
+        self.encoder_max_length = encoder_seq_len
         self.decoder_max_length = decoder_max_len
 
     def __len__(self):
@@ -85,9 +85,10 @@ def load_training_data(cfg, logger):
     dev_data_path = cfg['data']['dev_data_path']
     decoder_max_len = cfg['data']['max_sent_length']
     batch_size = cfg['data']['batch_size']
+    encoder_seq_len = cfg['data']['seq_length']
 
-    train_dataset = SinhalaSignDataset(train_data_path, tokenizer, decoder_max_len)
-    dev_dataset = SinhalaSignDataset(dev_data_path, tokenizer, decoder_max_len)
+    train_dataset = SinhalaSignDataset(train_data_path, tokenizer, encoder_seq_len, decoder_max_len)
+    dev_dataset = SinhalaSignDataset(dev_data_path, tokenizer, encoder_seq_len, decoder_max_len)
 
     logger.info(f"train dataset size : {len(train_dataset)}")
     logger.info(f"dev dataset size : {len(dev_dataset)}")
@@ -106,8 +107,9 @@ def load_test_data(cfg, logger):
     test_data_path = cfg['data']['test_data_path']
     decoder_max_len = cfg['data']['max_sent_length']
     batch_size = cfg['data']['batch_size']
+    encoder_seq_len = cfg['data']['seq_length']
 
-    test_dataset = SinhalaSignDataset(test_data_path, tokenizer, decoder_max_len)
+    test_dataset = SinhalaSignDataset(test_data_path, tokenizer, encoder_seq_len, decoder_max_len)
 
     logger.info(f"test dataset size : {len(test_dataset)}")
     logger.info(f"batch size: {batch_size}")

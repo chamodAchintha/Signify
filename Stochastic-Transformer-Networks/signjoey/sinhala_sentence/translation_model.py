@@ -38,6 +38,7 @@ class SinhalaSignTranslationModel(nn.Module):
         # encoder
         self.encoder = TransformerEncoder(
             **cfg['model']["encoder"],
+            seq_len=cfg['data'].get('seq_length', 100),
             emb_size=self.sgn_embed.embedding_dim,
             emb_dropout=enc_emb_dropout,
             inference_sample_size=cfg['model']['inference_sample_size']
