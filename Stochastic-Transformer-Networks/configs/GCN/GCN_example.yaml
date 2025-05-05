@@ -40,7 +40,7 @@ model:
     activation: lwta
     lwta_competitors: 4
     num_layers: 3
-    stdat_layers: true # STDAT layers
+    stdat_layers: false # STDAT layers
     num_heads: 8
     embeddings:
       freeze: false
