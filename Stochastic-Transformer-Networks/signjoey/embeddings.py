@@ -5,7 +5,8 @@ from torch import nn, Tensor
 import torch.nn.functional as F
 from signjoey.helpers import freeze_params
 from signjoey.layers import  DenseBayesian,EmbeddingBayesian
-
+from torch_geometric.nn import GCNConv, global_mean_pool
+from torch_geometric.data import Batch, Data
 
 def get_activation(activation_type):
     if activation_type == "relu":
@@ -308,3 +309,91 @@ class SpatialEmbeddings(nn.Module):
             self.embedding_dim,
             self.input_size,
         )
+
+class GCNSpatialEmbedding(nn.Module):
+    def __init__(
+            self, 
+            in_channels=2, 
+            hidden_dim=3, 
+            embedding_dim=512, 
+            num_layers=3,
+            freeze: bool = False,
+            **kwargs
+            ):
+        super().__init__()
+        self.convs = nn.ModuleList()
+        self.convs.append(GCNConv(in_channels, hidden_dim))
+        for _ in range(num_layers - 1):
+            self.convs.append(GCNConv(hidden_dim, hidden_dim))
+        self.activation = nn.ReLU()
+
+        self.projection = nn.Linear(102 * hidden_dim, embedding_dim)
+        self.batchnorm = nn.BatchNorm1d(embedding_dim)
+
+        if freeze:
+            freeze_params(self)
+
+    def forward(self, x, mask):  
+        # x: (B, T, 102, 2)
+        # mask: (B, 1, T) -> convert to (B, T)
+        B, T, V, C = x.shape
+        mask = mask.squeeze(1)  # (B, T)
+
+        x = x.view(B * T, V, C)
+        mask_flat = mask.view(-1)  # (B*T,)
+
+        edge_index = self.edge_index.to(x.device)
+
+        valid_indices = mask_flat.nonzero(as_tuple=False).squeeze(1)
+        valid_data = x[valid_indices]
+
+        data_list = []
+        for i, idx in enumerate(valid_indices):
+            data = Data(x=valid_data[i], edge_index=edge_index)
+            data.batch = torch.full((V,), i, dtype=torch.long)
+            data_list.append(data)
+
+        if len(data_list) == 0:
+            # If all frames are masked, return zero tensor
+            return torch.zeros(B, T, self.projection.out_features, device=x.device)
+
+        batch = Batch.from_data_list(data_list)
+
+        h = batch.x
+        for conv in self.convs:
+            h = self.activation(conv(h, batch.edge_index))  # (num_nodes, hidden_dim)
+
+        # Reshape h: [num_nodes, hidden_dim] → [num_valid_frames, 102, hidden_dim]
+        h = h.view(len(valid_indices), V, -1)
+
+        # Flatten per-frame node features: [valid_frames, 102 * hidden_dim]
+        h_flat = h.view(len(valid_indices), -1)
+
+        # Project to final dimension
+        projected = self.projection(h_flat)  # (valid_frames, embedding_dim)
+        projected = self.batchnorm(projected)
+        
+        # Reconstruct full sequence
+        output = torch.zeros(B * T, projected.size(-1), device=x.device)
+        output[valid_indices] = projected
+        output = output.view(B, T, -1)
+
+        return output
+
+    @property
+    def edge_index(self):
+        edges = [[0, 6], [0, 5], [6, 8], [5, 7], [0, 31], [31, 32], [32, 33], [28, 33],
+                 [28, 29], [29, 30], [30, 31], [0, 43], [40, 41], [41, 42], [42, 43],
+                 [43, 44], [44, 45], [45, 46], [46, 47], [47, 48], [48, 49], [49, 50],
+                 [50, 51], [40, 51], [40, 52], [46, 56], [52, 53], [53, 54], [54, 55],
+                 [55, 56], [56, 57], [57, 58], [58, 59], [52, 59], [0, 34], [34, 35],
+                 [35, 36], [36, 37], [37, 38], [38, 39], [34, 39], [7, 60], [60, 61],
+                 [61, 62], [62, 63], [63, 64], [60, 65], [65, 66], [66, 67], [67, 68],
+                 [60, 69], [69, 70], [70, 71], [71, 72], [60, 73], [73, 74], [74, 75],
+                 [75, 76], [60, 77], [77, 78], [78, 79], [79, 80], [8, 81], [81, 82],
+                 [82, 83], [83, 84], [84, 85], [81, 86], [86, 87], [87, 88], [88, 89],
+                 [81, 90], [90, 91], [91, 92], [92, 93], [81, 94], [94, 95], [95, 96],
+                 [96, 97], [81, 98], [98, 99], [99, 100], [100, 101]]
+        edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous()
+        rev = edge_index[[1, 0]]
+        return torch.cat([edge_index, rev], dim=1)

@@ -2,7 +2,7 @@ import torch.nn as nn
 from torch import Tensor
 import os
 from signjoey.helpers import load_checkpoint
-from signjoey.embeddings import SpatialEmbeddings
+from signjoey.embeddings import SpatialEmbeddings, GCNSpatialEmbedding
 from signjoey.encoders import TransformerEncoder
 from signjoey.classification_head import MLPHead, ConvHead, RNNHead, AttentionHead
 from signjoey.sinhala_sentence.mbart_decoder import MBartDecoder
@@ -25,12 +25,19 @@ class SinhalaSignTranslationModel(nn.Module):
         self.logger.info('creating the Translation model...')
 
         # embeddings
-        self.sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
-            **cfg['model']["encoder"]["embeddings"],
-            num_heads=cfg['model']["encoder"]["num_heads"],
-            input_size=cfg["data"]["feature_size"],
-            inference_sample_size=cfg['model']['inference_sample_size']
-        )
+        gcn_embeddings = cfg['model']["encoder"]["embeddings"].get('gcn', False)
+        self.logger.info(f'Graph Convolution Embeddings: {gcn_embeddings}')
+        if gcn_embeddings:
+            self.sgn_embed: GCNSpatialEmbedding = GCNSpatialEmbedding(
+                **cfg['model']["encoder"]["embeddings"]
+            )
+        else:
+            self.sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
+                **cfg['model']["encoder"]["embeddings"],
+                num_heads=cfg['model']["encoder"]["num_heads"],
+                input_size=cfg["data"]["feature_size"],
+                inference_sample_size=cfg['model']['inference_sample_size']
+            )
 
         enc_dropout = cfg['model']["encoder"].get("dropout", 0.0)
         enc_emb_dropout = cfg['model']["encoder"]["embeddings"].get("dropout", enc_dropout)
