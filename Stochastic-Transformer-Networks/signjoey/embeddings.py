@@ -321,6 +321,7 @@ class GCNSpatialEmbedding(nn.Module):
             **kwargs
             ):
         super().__init__()
+        self.embedding_dim = embedding_dim
         self.convs = nn.ModuleList()
         self.convs.append(GCNConv(in_channels, hidden_dim))
         for _ in range(num_layers - 1):
@@ -372,7 +373,7 @@ class GCNSpatialEmbedding(nn.Module):
         # Project to final dimension
         projected = self.projection(h_flat)  # (valid_frames, embedding_dim)
         projected = self.batchnorm(projected)
-        
+
         # Reconstruct full sequence
         output = torch.zeros(B * T, projected.size(-1), device=x.device)
         output[valid_indices] = projected
