@@ -5,7 +5,7 @@ data:
   test_data_path: ./data/sinhala-sentence-5fps-102kpt-test.pkl.gz
   feature_size: 204 # 102x2
   batch_size: 32
-  seq_length: 40 # seq len of encoder - number of frames
+  seq_length: 60 # seq len of encoder - number of frames
   max_sent_length: 30 # tokens wise
   tgt_language: si_LK
 training:

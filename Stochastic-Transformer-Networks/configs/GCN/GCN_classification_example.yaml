@@ -1,7 +1,7 @@
-name: stage02-912c-attention-102kpt-stdat
+name: GCN_classification_example
 data:
-  train_data_path: ./data/classification/sinhala-word-5fps-5sample-912classes-102kpt-train.pkl
-  test_data_path: ./data/classification/sinhala-word-5fps-5sample-912classes-102kpt-test.pkl
+  train_data_path: ./data/sinhala-word-5fps-5sample-912classes-102kpt-train.pkl
+  test_data_path: ./data/sinhala-word-5fps-5sample-912classes-102kpt-test.pkl
   val_split: 0.2
   feature_size: 204 # 102x2
   batch_size: 32
@@ -9,7 +9,7 @@ data:
 training:
   # load_model: "./SavedModels/example/13400.ckpt"
   random_seed: 44
-  model_dir: "./SavedModels/stage02-912c-attention-102kpt-stdat"
+  model_dir: "./SavedModels/GCN_classification_example"
   optimizer: adam
   learning_rate: 0.001
   batch_size: 32
@@ -37,10 +37,15 @@ model:
     activation: lwta
     lwta_competitors: 4
     num_layers: 3
-    stdat_layers: true # STDAT layers
+    stdat_layers: false # STDAT layers
     num_heads: 8
     embeddings:
+      freeze: false
       embedding_dim: 512
+      gcn: true
+      in_channels: 2
+      num_layers: 3
+      hidden_dim: 3
       scale: false
       bayesian: true
       ibp: false
@@ -51,6 +56,10 @@ model:
     hidden_size: 512
     ff_size: 2048
     dropout: 0.2
+    freeze: false
+    num_layers_to_freeze: 2
+    freeze_lower_layers: true
+    freeze_layers: [feed_forward] # subset of [layer_norm, src_src_att, feed_forward]
   classification_head:
     type: attention # mlp, attention, conv, rnn
     input_size: 512
