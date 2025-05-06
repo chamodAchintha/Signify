@@ -9,7 +9,7 @@ data:
   train: rwth_train_keypoints_102.train
   dev: rwth_dev_keypoints_102.dev
   test: rwth_dev_keypoints_102.dev
-  feature_size: 102
+  feature_size: 204
   level: word
   txt_lowercase: true
   max_sent_length: 400
