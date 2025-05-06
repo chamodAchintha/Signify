@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch
 from itertools import groupby
 from signjoey.initialization import initialize_model
-from signjoey.embeddings import Embeddings, SpatialEmbeddings
+from signjoey.embeddings import Embeddings, SpatialEmbeddings, GCNSpatialEmbedding
 from signjoey.encoders import Encoder, RecurrentEncoder, TransformerEncoder
 from signjoey.decoders import Decoder, RecurrentDecoder, TransformerDecoder
 from signjoey.search import beam_search, greedy
@@ -443,12 +443,21 @@ def build_model(
                 
             )
        else:
-           sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
-                **cfg["encoder"]["embeddings"],
-                num_heads=cfg["encoder"]["num_heads"],
-                input_size=sgn_dim,
-                inference_sample_size=cfg['inference_sample_size']
-            )
+            gcn_embeddings = cfg['model']["encoder"]["embeddings"].get('gcn', False)
+            # self.logger.info(f'Graph Convolution Embeddings: {gcn_embeddings}')
+            if gcn_embeddings:
+                sgn_embed: GCNSpatialEmbedding = GCNSpatialEmbedding(
+                    **cfg['model']["encoder"]["embeddings"],
+                    input_size=cfg["data"]["feature_size"],
+                    inference_sample_size=cfg['model']['inference_sample_size']
+                )
+            else:
+                sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
+                    **cfg['model']["encoder"]["embeddings"],
+                    num_heads=cfg['model']["encoder"]["num_heads"],
+                    input_size=cfg["data"]["feature_size"],
+                    inference_sample_size=cfg['model']['inference_sample_size']
+                )
         
     # build encoder
     enc_dropout = cfg["encoder"].get("dropout", 0.0)
