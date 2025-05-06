@@ -443,7 +443,7 @@ def build_model(
                 
             )
        else:
-            gcn_embeddings = cfg['model']["encoder"]["embeddings"].get('gcn', False)
+            gcn_embeddings = cfg["encoder"]["embeddings"].get('gcn', False)
             # self.logger.info(f'Graph Convolution Embeddings: {gcn_embeddings}')
             if gcn_embeddings:
                 sgn_embed: GCNSpatialEmbedding = GCNSpatialEmbedding(
