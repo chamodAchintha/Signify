@@ -72,6 +72,7 @@ training:
   decrease_factor: 0.8
   label_smoothing: 0.0
 model:
+  feature_size: 102
   gloss_input: false
   initializer: xavier
   bias_initializer: zeros

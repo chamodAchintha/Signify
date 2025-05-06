@@ -447,16 +447,16 @@ def build_model(
             # self.logger.info(f'Graph Convolution Embeddings: {gcn_embeddings}')
             if gcn_embeddings:
                 sgn_embed: GCNSpatialEmbedding = GCNSpatialEmbedding(
-                    **cfg['model']["encoder"]["embeddings"],
-                    input_size=cfg["data"]["feature_size"],
-                    inference_sample_size=cfg['model']['inference_sample_size']
+                    **cfg["encoder"]["embeddings"],
+                    input_size=cfg["encoder"]["feature_size"],
+                    inference_sample_size=cfg['inference_sample_size']
                 )
             else:
                 sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
-                    **cfg['model']["encoder"]["embeddings"],
-                    num_heads=cfg['model']["encoder"]["num_heads"],
-                    input_size=cfg["data"]["feature_size"],
-                    inference_sample_size=cfg['model']['inference_sample_size']
+                    **cfg["encoder"]["embeddings"],
+                    num_heads=cfg["encoder"]["num_heads"],
+                    input_size=cfg["encoder"]["feature_size"],
+                    inference_sample_size=cfg['inference_sample_size']
                 )
         
     # build encoder
