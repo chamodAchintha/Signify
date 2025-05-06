@@ -313,29 +313,50 @@ class SpatialEmbeddings(nn.Module):
 class GCNSpatialEmbedding(nn.Module):
     def __init__(
             self, 
+            input_size: int,
             in_channels=2, 
             hidden_dim=3, 
             embedding_dim=512, 
             num_layers=3,
             freeze: bool = False,
+            activation_type: str = None,
+            lwta_competitors: int = 4,
+            bayesian : bool = False,
+            ibp : bool = False,
+            inference_sample_size : int = 1,
             **kwargs
             ):
         super().__init__()
         self.embedding_dim = embedding_dim
+        self.input_size = input_size
+
         self.convs = nn.ModuleList()
         self.convs.append(GCNConv(in_channels, hidden_dim))
         for _ in range(num_layers - 1):
             self.convs.append(GCNConv(hidden_dim, hidden_dim))
         self.activation = nn.ReLU()
 
-        self.projection = nn.Linear(102 * hidden_dim, embedding_dim)
+        self.projection = nn.Linear(input_size * hidden_dim, embedding_dim)
+
+        self.bayesian=bayesian
+        if self.bayesian:
+            self.inference_sample_size=inference_sample_size
+        else:
+            self.inference_sample_size=1
+        if bayesian:
+            self.projection = DenseBayesian(input_size * hidden_dim, self.embedding_dim, competitors =lwta_competitors ,
+                                activation = activation_type, prior_mean=0, prior_scale=1. , kl_w=0.1, ibp = ibp)
+         
+        else:
+            self.projection = nn.Linear(input_size * hidden_dim, self.embedding_dim)
+
         self.batchnorm = nn.BatchNorm1d(embedding_dim)
 
         if freeze:
             freeze_params(self)
 
-    def forward(self, x, mask):  
-        # x: (B, T, 102, 2)
+    def forward_(self, x, mask):  
+        # x: (B, T, input_size, in_channels)
         # mask: (B, 1, T) -> convert to (B, T)
         B, T, V, C = x.shape
         mask = mask.squeeze(1)  # (B, T)
@@ -364,10 +385,10 @@ class GCNSpatialEmbedding(nn.Module):
         for conv in self.convs:
             h = self.activation(conv(h, batch.edge_index))  # (num_nodes, hidden_dim)
 
-        # Reshape h: [num_nodes, hidden_dim] → [num_valid_frames, 102, hidden_dim]
+        # Reshape h: [num_nodes, hidden_dim] → [num_valid_frames, input_size, hidden_dim]
         h = h.view(len(valid_indices), V, -1)
 
-        # Flatten per-frame node features: [valid_frames, 102 * hidden_dim]
+        # Flatten per-frame node features: [valid_frames, input_size * hidden_dim]
         h_flat = h.view(len(valid_indices), -1)
 
         # Project to final dimension
@@ -380,21 +401,31 @@ class GCNSpatialEmbedding(nn.Module):
         output = output.view(B, T, -1)
 
         return output
+    
+    def forward( self, x: Tensor, mask: Tensor) -> Tensor:
+        if self.training :
+            return self.forward_(x,mask)
+        else:
+            out=[]
+            for i in range(self.inference_sample_size):
+                x_=  self.forward_(x,mask)
+                out.append(torch.unsqueeze(x_,-1))
+            out=torch.cat(out,-1)
+            return out
 
     @property
     def edge_index(self):
-        edges = [[0, 6], [0, 5], [6, 8], [5, 7], [0, 31], [31, 32], [32, 33], [28, 33],
-                 [28, 29], [29, 30], [30, 31], [0, 43], [40, 41], [41, 42], [42, 43],
-                 [43, 44], [44, 45], [45, 46], [46, 47], [47, 48], [48, 49], [49, 50],
-                 [50, 51], [40, 51], [40, 52], [46, 56], [52, 53], [53, 54], [54, 55],
-                 [55, 56], [56, 57], [57, 58], [58, 59], [52, 59], [0, 34], [34, 35],
-                 [35, 36], [36, 37], [37, 38], [38, 39], [34, 39], [7, 60], [60, 61],
-                 [61, 62], [62, 63], [63, 64], [60, 65], [65, 66], [66, 67], [67, 68],
-                 [60, 69], [69, 70], [70, 71], [71, 72], [60, 73], [73, 74], [74, 75],
-                 [75, 76], [60, 77], [77, 78], [78, 79], [79, 80], [8, 81], [81, 82],
-                 [82, 83], [83, 84], [84, 85], [81, 86], [86, 87], [87, 88], [88, 89],
-                 [81, 90], [90, 91], [91, 92], [92, 93], [81, 94], [94, 95], [95, 96],
-                 [96, 97], [81, 98], [98, 99], [99, 100], [100, 101]]
+        edges =  [[6, 8], [5, 7], [0, 31], [31, 32], [32, 33], [28, 33],[28, 29], [29, 30], [30, 31],
+            [40, 41], [41, 42], [42, 43],[43, 44], [44, 45], [45, 46], [46, 47], [47, 48], [48, 49],
+            [49, 50],[50, 51], [40, 51], [40, 52],[46, 56], [52, 53], [53, 54], [54, 55],[55, 56],
+            [56, 57], [57, 58], [58, 59],[52, 59], [0, 34], [34, 35],[35, 36], [36, 37], [37, 38],
+            [38, 39], [34, 39],[7, 60], [60, 61],[61, 62], [62, 63], [63, 64], [60, 65], [65, 66],
+            [66, 67], [67, 68],[60, 69], [69, 70], [70, 71],[71, 72], [60, 73], [73, 74], [74, 75],
+            [75, 76], [60, 77], [77, 78], [78, 79], [79, 80], [8, 81], [81, 82],[82, 83], [83, 84],
+            [84, 85], [81, 86], [86, 87], [87, 88], [88, 89],[81, 90], [90, 91], [91, 92], [92, 93],
+            [81, 94], [94, 95], [95, 96],[96, 97], [81, 98], [98, 99], [99, 100], [100, 101],
+            [5,6], [3,5], [4,6],[23, 24],[24, 25], [25, 26],[26, 27],[22,25],[21,22],[20,21],[19,20],
+            [9,10],[10,11],[11,12],[12,13],[14,15],[15,16],[16,17],[17,18],[4,29],[3,36],[19,31],[19,34]]
         edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous()
         rev = edge_index[[1, 0]]
         return torch.cat([edge_index, rev], dim=1)

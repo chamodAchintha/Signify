@@ -24,7 +24,9 @@ class ClassificationModel(nn.Module):
         self.logger.info(f'Graph Convolution Embeddings: {gcn_embeddings}')
         if gcn_embeddings:
             self.sgn_embed: GCNSpatialEmbedding = GCNSpatialEmbedding(
-                **cfg['model']["encoder"]["embeddings"]
+                **cfg['model']["encoder"]["embeddings"],
+                input_size=cfg["data"]["feature_size"],
+                inference_sample_size=cfg['model']['inference_sample_size']
             )
         else:
             self.sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
