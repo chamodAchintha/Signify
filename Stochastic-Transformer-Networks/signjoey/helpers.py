@@ -208,7 +208,7 @@ def load_checkpoint(path: str, use_cuda: bool = True) -> dict:
     :return: checkpoint (dict)
     """
     assert os.path.isfile(path), "Checkpoint %s not found" % path
-    checkpoint = torch.load(path, map_location="cuda" if use_cuda else "cpu")
+    checkpoint = torch.load(path, map_location="cuda" if use_cuda else "cpu", weights_only=False)
     return checkpoint
 
 
