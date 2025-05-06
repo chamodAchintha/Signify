@@ -358,6 +358,12 @@ class GCNSpatialEmbedding(nn.Module):
     def forward_(self, x, mask):  
         # x: (B, T, input_size, in_channels)
         # mask: (B, 1, T) -> convert to (B, T)
+
+        # tempory for run 102x2 keypoint data
+        xc = x[:, :, :102]
+        yc = x[:, :, 102:]
+        x = torch.stack([xc, yc], dim=-1)
+
         B, T, V, C = x.shape
         mask = mask.squeeze(1)  # (B, T)
 
