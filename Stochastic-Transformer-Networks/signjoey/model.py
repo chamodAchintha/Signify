@@ -448,14 +448,14 @@ def build_model(
             if gcn_embeddings:
                 sgn_embed: GCNSpatialEmbedding = GCNSpatialEmbedding(
                     **cfg["encoder"]["embeddings"],
-                    input_size=cfg["encoder"]["feature_size"],
+                    input_size=cfg["feature_size"],
                     inference_sample_size=cfg['inference_sample_size']
                 )
             else:
                 sgn_embed: SpatialEmbeddings = SpatialEmbeddings(
                     **cfg["encoder"]["embeddings"],
                     num_heads=cfg["encoder"]["num_heads"],
-                    input_size=cfg["encoder"]["feature_size"],
+                    input_size=cfg["feature_size"],
                     inference_sample_size=cfg['inference_sample_size']
                 )
         
