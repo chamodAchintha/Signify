@@ -121,7 +121,7 @@ def train_translation_model(cfg_file: str):
             opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_train_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}\n')
 
         # save checkpoint
-        if bleu_scores['bleu3'] > best_bleu3:
+        if bleu_scores['bleu3'] >= best_bleu3:
             best_bleu3 = bleu_scores['bleu3']
             checkpoint = {
                 'epoch': epoch + 1,
