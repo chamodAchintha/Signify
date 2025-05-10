@@ -35,7 +35,7 @@ class SinhalaSignDataset(Dataset):
         """
         self.data = load_dataset_file(data_path)
         self.tokenizer = tokenizer
-        self.encoder_max_length = encoder_seq_len
+        self.encoder_max_length = encoder_seq_len if encoder_seq_len is not None else max([entry["keypoints"].size(0) for entry in self.data])
         self.decoder_max_length = decoder_max_len
 
     def __len__(self):
@@ -85,7 +85,7 @@ def load_training_data(cfg, logger):
     dev_data_path = cfg['data']['dev_data_path']
     decoder_max_len = cfg['data']['max_sent_length']
     batch_size = cfg['data']['batch_size']
-    encoder_seq_len = cfg['data']['seq_length']
+    encoder_seq_len = cfg['data'].get('seq_length', None)
 
     train_dataset = SinhalaSignDataset(train_data_path, tokenizer, encoder_seq_len, decoder_max_len)
     dev_dataset = SinhalaSignDataset(dev_data_path, tokenizer, encoder_seq_len, decoder_max_len)
@@ -107,7 +107,7 @@ def load_test_data(cfg, logger):
     test_data_path = cfg['data']['test_data_path']
     decoder_max_len = cfg['data']['max_sent_length']
     batch_size = cfg['data']['batch_size']
-    encoder_seq_len = cfg['data']['seq_length']
+    encoder_seq_len = cfg['data'].get('seq_length', None)
 
     test_dataset = SinhalaSignDataset(test_data_path, tokenizer, encoder_seq_len, decoder_max_len)
 
