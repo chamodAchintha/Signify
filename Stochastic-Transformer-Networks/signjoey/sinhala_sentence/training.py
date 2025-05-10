@@ -43,7 +43,6 @@ def train_translation_model(cfg_file: str):
 
     model.to(device)
 
-
     # optimization
     current_lr = train_config["learning_rate"]
     optimizer = build_optimizer(
@@ -65,7 +64,7 @@ def train_translation_model(cfg_file: str):
     )
 
     num_epochs = train_config["epochs"]
-    best_val_loss = float('inf')
+    best_bleu3 = 0.0  # Initialize best BLEU-3 score
 
     logger.info(f"Number of trainable parameters = {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
     logger.info("Training Starts...")
@@ -122,18 +121,18 @@ def train_translation_model(cfg_file: str):
             opened_file.write(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {avg_train_loss:.4f} Validation Loss: {avg_val_loss:.4f}, lr: {current_lr:.6f}\n')
 
         # save checkpoint
-        if avg_val_loss < best_val_loss:
-            best_val_loss = avg_val_loss
+        if bleu_scores['bleu3'] > best_bleu3:
+            best_bleu3 = bleu_scores['bleu3']
             checkpoint = {
                 'epoch': epoch + 1,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
-                'best_val_loss': best_val_loss,
+                'best_bleu3': best_bleu3,
                 'learning_rate': optimizer.param_groups[0]['lr'],
             }
             torch.save(checkpoint, os.path.join(train_config["model_dir"], 'best_model.pth'))
-            logger.info(f"New best model saved with validation loss {best_val_loss:.4f}")
+            logger.info(f"New best model saved with BLEU-3 score {best_bleu3:.4f}")
 
         # Step the scheduler
         scheduler.step(avg_val_loss)

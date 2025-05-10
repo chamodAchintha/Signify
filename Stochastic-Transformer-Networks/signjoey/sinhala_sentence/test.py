@@ -7,6 +7,7 @@ from signjoey.sinhala_sentence.data import load_test_data
 from signjoey.sinhala_sentence.search import greedy_decode
 from signjoey.metrics import bleu, rouge
 import random
+import csv
 
 def test_translation_model(cfg_file: str):
     cfg = load_config(cfg_file)
@@ -61,6 +62,15 @@ def test_translation_model(cfg_file: str):
     # Compute BLEU and ROUGE scores
     bleu_scores = bleu(references, hypotheses)
     rouge_score = rouge(references, hypotheses)
+    
+    # Save references and hypotheses to CSV
+    csv_path = os.path.join(cfg["training"]["model_dir"], 'test_results.csv')
+    with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Reference', 'Hypothesis'])  # header
+        for ref, hyp in zip(references, hypotheses):
+            writer.writerow([ref, hyp])
+    logger.info(f"Test results saved to {csv_path}")
     
     logger.info(f">> BLEU-1: {bleu_scores['bleu1']:.4f}, BLEU-2: {bleu_scores['bleu2']:.4f}, BLEU-3: {bleu_scores['bleu3']:.4f}, BLEU-4: {bleu_scores['bleu4']:.4f}, ROUGE: {rouge_score:.4f}")
 
