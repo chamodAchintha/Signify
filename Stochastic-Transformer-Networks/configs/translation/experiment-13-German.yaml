@@ -1,0 +1,71 @@
+name: experiment-13-German
+# Pretrained mbart with german keypoint data
+# Train first 6 decoder layers as in config array
+data:
+  train_data_path: ./data/synthetic/sinhala-sentence-5fps-102kpt-train.pkl.gz
+  dev_data_path: ./data/synthetic/sinhala-sentence-5fps-102kpt-dev.pkl.gz
+  test_data_path: ./data/synthetic/sinhala-sentence-5fps-102kpt-test.pkl.gz
+  feature_size: 204 # 102x2
+  batch_size: 32
+  max_sent_length: 20 # tokens wise
+  tgt_language: si_LK
+training:
+  # load_model: "./SavedModels/example/13400.ckpt"
+  random_seed: 44
+  model_dir: "./SavedModels/experiment-11"
+  optimizer: adamw
+  learning_rate: 0.001
+  batch_size: 32
+  epochs: 200
+  shuffle: true
+  use_cuda: true
+  betas:
+    - 0.9
+    - 0.998
+  learning_rate_min: 0.00001
+  patience: 6
+  decrease_factor: 0.8
+  # es_patience: 10
+  # es_min_delta: 0
+model:
+  inference_sample_size: 4
+  use_checkpoint: false
+  checkpoint: ""
+  encoder:
+    use_checkpoint: false
+    checkpoint: ""
+    skip_encoder: false
+    type: transformer
+    bayesian_attention: true
+    bayesian_feedforward: true
+    ibp: false
+    activation: lwta
+    lwta_competitors: 4
+    num_layers: 4
+    num_heads: 8
+    embeddings:
+      freeze: false
+      embedding_dim: 512
+      scale: false
+      bayesian: true
+      ibp: false
+      dropout: 0.2
+      norm_type: batch
+      activation_type: lwta
+      lwta_competitors: 4
+    hidden_size: 512
+    ff_size: 2048
+    dropout: 0.2
+    freeze: false
+    num_layers_to_freeze: 2
+    freeze_lower_layers: false
+    freeze_layers: [feed_forward] # subset of [layer_norm, src_src_att, feed_forward]
+  decoder:
+    freeze: true
+    num_layers_to_train: 6 # <=12
+    train_lower_layers: true
+    # train_layers should be a subset of
+    # [self_attn, self_attn_layer_norm, encoder_attn, encoder_attn_layer_norm, fc1, fc2, final_layer_norm]
+    train_layers:
+      [encoder_attn, encoder_attn_layer_norm, fc1, fc2, final_layer_norm]
+  freeze_projection_layer: false
