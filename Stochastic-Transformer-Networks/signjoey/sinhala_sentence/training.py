@@ -64,8 +64,8 @@ def train_translation_model(cfg_file: str):
     )
 
     num_epochs = train_config["epochs"]
-    best_bleu3 = 0.0  # Initialize best BLEU-3 score
-    best_bleu2 = 0.0
+    best_bleu3 = float('-inf')  # Initialize to negative infinity
+    best_bleu2 = float('-inf')  # Initialize to negative infinity
 
     logger.info(f"Number of trainable parameters = {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
     logger.info("Training Starts...")
