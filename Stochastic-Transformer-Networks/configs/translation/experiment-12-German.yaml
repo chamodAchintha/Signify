@@ -12,7 +12,7 @@ data:
 training:
   # load_model: "./SavedModels/example/13400.ckpt"
   random_seed: 44
-  model_dir: "./SavedModels/experiment-11"
+  model_dir: "./SavedModels/experiment-12-German"
   optimizer: adamw
   learning_rate: 0.001
   batch_size: 32
