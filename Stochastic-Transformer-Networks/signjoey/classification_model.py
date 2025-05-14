@@ -56,8 +56,13 @@ class ClassificationModel(nn.Module):
             if not os.path.exists(checkpoint_path):
                  raise FileNotFoundError(f"Checkpoint '{checkpoint_path}' does not exist.")
             model_checkpoint = load_checkpoint(checkpoint_path, use_cuda=use_cuda)
-            encoder_state_dict = {k[8:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('encoder.')}
-            embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('sgn_embed.')}
+            model_state = model_checkpoint.get("model_state_dict") or model_checkpoint.get("model_state")
+            if model_state is None:
+                raise KeyError("Checkpoint does not contain 'model_state_dict' or 'model_state'.")
+            encoder_state_dict = {k[8:]: v for k, v in model_state.items() if k.startswith('encoder.')}
+            embed_state_dict = {k[10:]: v for k, v in model_state.items() if k.startswith('sgn_embed.')}
+            # encoder_state_dict = {k[8:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('encoder.')}
+            # embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('sgn_embed.')}
             self.encoder.load_state_dict(encoder_state_dict)
             self.sgn_embed.load_state_dict(embed_state_dict)
             self.logger.info(f'loaded the embed and encoder state from the checkpoint - {checkpoint_path}')
