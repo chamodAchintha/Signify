@@ -52,21 +52,6 @@ class SinhalaSignTranslationModel(nn.Module):
             emb_dropout=enc_emb_dropout,
             inference_sample_size=cfg['model']['inference_sample_size']
         )
-        
-        # load only the encoder and encoder spatial embedding state from checkpoint
-        use_encoder_checkpoint = cfg['model']['encoder'].get('use_checkpoint', False)
-        if use_encoder_checkpoint:
-            use_cuda = cfg["training"].get("use_cuda", False)
-            device = torch.device("cuda" if (torch.cuda.is_available() and use_cuda) else "cpu")
-            checkpoint_path = cfg['model']['encoder']['checkpoint']
-            if not os.path.exists(checkpoint_path):
-                 raise FileNotFoundError(f"Checkpoint '{checkpoint_path}' does not exist.")
-            model_checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-            encoder_state_dict = {k[8:]: v for k, v in model_checkpoint["model_state_dict"].items() if k.startswith('encoder.')}
-            embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state_dict"].items() if k.startswith('sgn_embed.')}
-            self.encoder.load_state_dict(encoder_state_dict)
-            self.sgn_embed.load_state_dict(embed_state_dict)
-            self.logger.info(f'loaded the embed and encoder state from the checkpoint - {checkpoint_path}')
 
         # mbart deocder
         self.decoder = MBartDecoder(cfg, logger) 
@@ -79,9 +64,7 @@ class SinhalaSignTranslationModel(nn.Module):
         use_model_checkpoint = cfg['model'].get('use_checkpoint', False)
         self.logger.info(f"Load model weights from a checkpoint: {use_model_checkpoint}")
         if use_model_checkpoint:
-            if use_encoder_checkpoint:
-                self.logger.warn(f"Already loaded an encoder checkpoint. It will be discarded.")
-
+            
             use_cuda = cfg["training"].get("use_cuda", False)
             device = torch.device("cuda" if (torch.cuda.is_available() and use_cuda) else "cpu")
 
@@ -93,6 +76,23 @@ class SinhalaSignTranslationModel(nn.Module):
             model_checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
             self.load_state_dict(model_checkpoint['model_state_dict'])
             self.logger.info(f"Checkpoint Loaded.")
+
+        # load only the encoder and encoder spatial embedding state from checkpoint
+        use_encoder_checkpoint = cfg['model']['encoder'].get('use_checkpoint', False)
+        if use_encoder_checkpoint:
+            if use_model_checkpoint:
+                self.logger.warn(f"Already loaded a model checkpoint. Encoder weight will be overwritten.")
+            use_cuda = cfg["training"].get("use_cuda", False)
+            device = torch.device("cuda" if (torch.cuda.is_available() and use_cuda) else "cpu")
+            checkpoint_path = cfg['model']['encoder']['checkpoint']
+            if not os.path.exists(checkpoint_path):
+                 raise FileNotFoundError(f"Checkpoint '{checkpoint_path}' does not exist.")
+            model_checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+            encoder_state_dict = {k[8:]: v for k, v in model_checkpoint["model_state_dict"].items() if k.startswith('encoder.')}
+            embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state_dict"].items() if k.startswith('sgn_embed.')}
+            self.encoder.load_state_dict(encoder_state_dict)
+            self.sgn_embed.load_state_dict(embed_state_dict)
+            self.logger.info(f'loaded the embed and encoder state from the checkpoint - {checkpoint_path}')
 
         self.freeze(cfg)
 
