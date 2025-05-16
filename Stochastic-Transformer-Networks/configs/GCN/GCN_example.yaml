@@ -14,7 +14,7 @@ training:
   optimizer: adamw
   learning_rate: 0.001
   batch_size: 32
-  epochs: 200
+  epochs: 150
   shuffle: true
   use_cuda: true
   betas:
