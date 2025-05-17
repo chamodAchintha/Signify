@@ -50,6 +50,7 @@ class ClassificationModel(nn.Module):
         
         # load encoder and spatial embedding state from checkpoint
         use_checkpoint = cfg['model']['encoder'].get('use_checkpoint', False)
+        load_encoder_only = cfg['model']['encoder'].get('load_encoder_only', False)
         if use_checkpoint:
             use_cuda = cfg["training"].get("use_cuda", False)
             checkpoint_path = cfg['model']['encoder']['checkpoint']
@@ -60,12 +61,15 @@ class ClassificationModel(nn.Module):
             if model_state is None:
                 raise KeyError("Checkpoint does not contain 'model_state_dict' or 'model_state'.")
             encoder_state_dict = {k[8:]: v for k, v in model_state.items() if k.startswith('encoder.')}
-            embed_state_dict = {k[10:]: v for k, v in model_state.items() if k.startswith('sgn_embed.')}
+            self.encoder.load_state_dict(encoder_state_dict)
+            if not load_encoder_only:                
+                embed_state_dict = {k[10:]: v for k, v in model_state.items() if k.startswith('sgn_embed.')}
+                self.sgn_embed.load_state_dict(embed_state_dict)
+                self.logger.info('embedding state loaded from checkpoint')
             # encoder_state_dict = {k[8:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('encoder.')}
             # embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('sgn_embed.')}
-            self.encoder.load_state_dict(encoder_state_dict)
-            self.sgn_embed.load_state_dict(embed_state_dict)
-            self.logger.info(f'loaded the embed and encoder state from the checkpoint - {checkpoint_path}')
+                        
+            self.logger.info(f'loaded the encoder state from the checkpoint - {checkpoint_path}')
 
         # classification head
         head_type = cfg['model']['classification_head']['type']
