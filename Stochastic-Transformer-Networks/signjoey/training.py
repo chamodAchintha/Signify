@@ -1029,6 +1029,28 @@ def train(cfg_file: str) -> None:
     # for training management, e.g. early stopping and model selection
     trainer = TrainManager(model=model, config=cfg)
 
+    # load encoder and spatial embedding state from checkpoint
+    use_encoder_checkpoint = cfg['model']['encoder'].get('use_checkpoint', False)
+    load_encoder_only = cfg['model']['encoder'].get('load_encoder_only', False)
+    if use_encoder_checkpoint:
+        use_cuda = cfg["training"].get("use_cuda", False)
+        checkpoint_path = cfg['model']['encoder']['checkpoint']
+        if not os.path.exists(checkpoint_path):
+                raise FileNotFoundError(f"Checkpoint '{checkpoint_path}' does not exist.")
+        model_checkpoint = load_checkpoint(checkpoint_path, use_cuda=use_cuda)
+        model_state = model_checkpoint.get("model_state_dict") or model_checkpoint.get("model_state")
+        if model_state is None:
+            raise KeyError("Checkpoint does not contain 'model_state_dict' or 'model_state'.")
+        encoder_state_dict = {k[8:]: v for k, v in model_state.items() if k.startswith('encoder.')}
+        trainer.model.encoder.load_state_dict(encoder_state_dict)
+        if not load_encoder_only:                
+            embed_state_dict = {k[10:]: v for k, v in model_state.items() if k.startswith('sgn_embed.')}
+            trainer.model.sgn_embed.load_state_dict(embed_state_dict)
+            logger.info('embedding state loaded from checkpoint')
+        # encoder_state_dict = {k[8:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('encoder.')}
+        # embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('sgn_embed.')}           
+        logger.info(f'loaded the encoder state from the checkpoint - {checkpoint_path}')
+
     # Load decoder state
     if cfg["model"]["decoder"].get('load_decoder', None) is not None:
         pass
