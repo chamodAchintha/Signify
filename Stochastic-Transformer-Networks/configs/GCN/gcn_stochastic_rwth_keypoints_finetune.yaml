@@ -1,5 +1,5 @@
-name: gcn_stochastic_rwth_keypoints
-# pre train stochastic transformer with cgn embeddings for german keypoint data
+name: gcn_stochastic_rwth_keypoints_finetune
+# this finetune the stoachastic transformer with keypoints data using stochastic transformer trained with inception data
 data:
   data_path: ./data/
   version: phoenix_2014_trans
@@ -38,7 +38,7 @@ training:
   reset_scheduler: true
   reset_optimizer: true
   random_seed: 44
-  model_dir: "./SavedModels/gcn_stochastic_rwth_keypoints"
+  model_dir: "./SavedModels/gcn_stochastic_rwth_keypoints_finetune"
   recognition_loss_weight: 0
   translation_loss_weight: 1.0
   kl_weight: 1
