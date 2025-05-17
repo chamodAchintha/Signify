@@ -1046,10 +1046,10 @@ def train(cfg_file: str) -> None:
         if not load_encoder_only:                
             embed_state_dict = {k[10:]: v for k, v in model_state.items() if k.startswith('sgn_embed.')}
             trainer.model.sgn_embed.load_state_dict(embed_state_dict)
-            logger.info('embedding state loaded from checkpoint')
+            trainer.logger.info('embedding state loaded from checkpoint')
         # encoder_state_dict = {k[8:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('encoder.')}
         # embed_state_dict = {k[10:]: v for k, v in model_checkpoint["model_state"].items() if k.startswith('sgn_embed.')}           
-        logger.info(f'loaded the encoder state from the checkpoint - {checkpoint_path}')
+        trainer.logger.info(f'loaded the encoder state from the checkpoint - {checkpoint_path}')
 
     # Load decoder state
     if cfg["model"]["decoder"].get('load_decoder', None) is not None:
